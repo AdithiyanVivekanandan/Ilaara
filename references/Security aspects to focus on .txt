@@ -1,0 +1,45 @@
+Web Security knowledge
+
+You already know about OWASP Top 10 — apply it from day one. SQL injection, XSS, CSRF, broken auth — you won't make rookie mistakes that most developers do
+Set proper Content Security Policy headers, HSTS, X-Frame-Options yourself instead of relying on Vercel defaults
+You can manually test your own site with Burp Suite before launch — most small business websites have never seen a single security test
+Input sanitization and validation — you'll do this properly because you understand why it matters
+
+Reverse Engineering / Client-side
+
+You'll know exactly what not to expose in your frontend bundle — API keys, logic, endpoints
+You can obfuscate sensitive client-side logic if needed
+You'll spot if any third party library you use is doing something suspicious
+
+Forensics
+
+Set up proper logging from day one — access logs, error logs, suspicious activity logs
+You can build a simple admin dashboard that flags anomalous behavior — like 50 orders from the same IP in 2 minutes
+If anything ever goes wrong, you'll actually be able to investigate it instead of being blind
+
+OSINT
+
+Before launch, do an OSINT pass on your own site — what does it expose? Metadata in images, DNS records, WHOIS info, stack fingerprinting
+Strip EXIF data from all product photos before they go live — polaroid and crochet photos taken on a phone contain GPS coordinates by default. That's your friend's home address sitting in the image metadata. This is a real threat.
+Use Cloudflare to mask your origin server IP — so nobody can bypass Cloudflare and hit Vercel directly
+
+
+Things you can build that a normal developer wouldn't think of
+
+A honeypot field in order forms — a hidden input that real users never fill but bots always do. Instant bot order detection, zero cost
+Rate limiting on all API routes — Supabase + Vercel edge functions let you do this, and you'll know exactly what thresholds make sense
+Admin alert system — if someone hits your API more than X times in Y seconds, send a Telegram bot message to your phone instantly. Free and effective
+Proper JWT handling for auth instead of relying on default Supabase auth flow blindly
+A simple anomaly detection log — flag orders with mismatched billing locations, repeated failed payments, same device multiple accounts
+
+What you should do right now
+Three immediate actions before you deploy anything:
+First — when you create your Vercel project, go to Settings → Environment Variables and mark every single secret as sensitive. Not just some of them. All of them. This is now confirmed to matter.
+Second — audit every OAuth app connected to any Google account you'll use for this project. Go to myaccount.google.com/permissions and revoke anything you don't recognise or actively use. The specific compromised OAuth app ID from this incident is 110671459871-30f1spbu0hptbs60cb4vsmv79i7bbvqj.apps.googleusercontent.com — check if it appears anywhere.
+Third — Vercel advises customers to check activity logs and rotate environment variables if they contain secrets like API keys, tokens, database credentials, or signing keys. Bleeping Computer Since you haven't deployed yet, you're setting up fresh — but make it a habit to rotate all secrets every 90 days once live.
+
+The EXIF thing is urgent
+This deserves a callout on its own. Your friend is selling handmade items — she photographs them at home. Every photo potentially has her exact home coordinates baked in. You should build an automatic EXIF stripping step into the image upload pipeline using Cloudinary's transformation settings or a small serverless function. Most people never think about this.
+
+Bigger picture — this is a portfolio play too
+You're building a real production website, securing it yourself, and you can document everything — the threat model, the security decisions, the tools used. That becomes a case study in your cybersecurity portfolio. A real-world secured e-commerce site you built and hardened is more impressive in interviews than CTF writeups alone.

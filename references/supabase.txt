@@ -1,0 +1,228 @@
+Let's go. Here's everything for Supabase setup — all as text, no files.
+
+Step 1 — Create the project
+
+Go to supabase.com, sign up with GitHub. Create a new project. Name it something relevant like crochet-shop. Choose the Singapore region — closest to India, lowest latency for your users. Save the database password somewhere safe, you won't see it again.
+
+Once the project is created, go to Project Settings → API. You need two values — copy them somewhere safe right now.
+
+Project URL — looks like https://xyzxyzxyz.supabase.co
+
+Anon public key — the long JWT string. This one is safe to use in your frontend.
+
+Service role key — never put this in frontend code ever. This bypasses RLS completely. Only use in server-side code if ever needed.
+
+Step 2 — Create the tables
+
+Go to the SQL editor in your Supabase dashboard. Run these one by one.
+
+Products table
+sql
+
+create table products (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  slug text not null unique,
+  description text,
+  price numeric(10, 2) not null,
+  category text not null check (category in ('crochet', 'polaroid')),
+  images text[] default '{}',
+  is_available boolean default true,
+  is_featured boolean default false,
+  created_at timestamptz default now()
+);
+
+The slug is the URL-friendly name like blue-crochet-bag used in product detail page URLs. The images column is an array of Cloudinary URLs. The category check constraint means only 'crochet' or 'polaroid' can be inserted — no typos causing bad data.
+
+Orders table
+sql
+
+create table orders (
+  id uuid default gen_random_uuid() primary key,
+  razorpay_order_id text unique,
+  razorpay_payment_id text,
+  buyer_name text not null,
+  buyer_email text not null,
+  buyer_phone text not null,
+  shipping_address jsonb not null,
+  items jsonb not null,
+  total_amount numeric(10, 2) not null,
+  status text default 'pending' check (status in ('pending', 'confirmed', 'shipped', 'delivered', 'cancelled')),
+  created_at timestamptz default now()
+);
+
+The shipping_address is stored as JSON so you don't need a separate address table. It will look like {"line1": "...", "city": "...", "state": "...", "pincode": "..."}. The items column stores a snapshot of what was ordered — like [{"product_id": "...", "name": "...", "price": 499, "quantity": 1}]. Storing a snapshot matters because if she later changes a product's price, old orders still show the correct price they were charged.
+
+Enquiries table
+sql
+
+create table enquiries (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  email text not null,
+  message text not null,
+  is_custom_order boolean default false,
+  created_at timestamptz default now()
+);
+
+Step 3 — Enable RLS on every table
+
+Run these immediately after creating the tables. Until you do this, the tables are wide open.
+sql
+
+alter table products enable row level security;
+alter table orders enable row level security;
+alter table enquiries enable row level security;
+
+Right now with RLS enabled and no policies written, nobody can read or write anything — not even your frontend. That's correct. You'll open up only what you need next.
+
+Step 4 — Write RLS policies
+
+Products policies
+
+Public can read available products — your shop page needs this.
+sql
+
+create policy "public can read available products"
+on products for select
+using (is_available = true);
+
+Only admin can insert products.
+sql
+
+create policy "admin can insert products"
+on products for insert
+to authenticated
+with check (auth.email() = 'yourfriendemail@gmail.com');
+
+Only admin can update products.
+sql
+
+create policy "admin can update products"
+on products for update
+to authenticated
+using (auth.email() = 'yourfriendemail@gmail.com');
+
+Only admin can delete products.
+sql
+
+create policy "admin can delete products"
+on products for delete
+to authenticated
+using (auth.email() = 'yourfriendemail@gmail.com');
+
+Replace yourfriendemail@gmail.com with her actual email in all four policies.
+
+Orders policies
+
+Anyone can place an order — guest checkout, no login required.
+sql
+
+create policy "anyone can create order"
+on orders for insert
+with check (true);
+
+Nobody can read orders publicly — not even the buyer. You'll email them their details instead.
+sql
+
+create policy "admin can read orders"
+on orders for select
+to authenticated
+using (auth.email() = 'yourfriendemail@gmail.com');
+
+Only admin can update order status.
+sql
+
+create policy "admin can update order status"
+on orders for update
+to authenticated
+using (auth.email() = 'yourfriendemail@gmail.com');
+
+Enquiries policies
+
+Anyone can submit an enquiry.
+sql
+
+create policy "anyone can submit enquiry"
+on enquiries for insert
+with check (true);
+
+Only admin can read enquiries.
+sql
+
+create policy "admin can read enquiries"
+on enquiries for select
+to authenticated
+using (auth.email() = 'yourfriendemail@gmail.com');
+
+Step 5 — Test your RLS before writing a single line of frontend code
+
+This is critical. Go to the SQL editor and run these tests manually.
+
+Test 1 — public product read should work.
+sql
+
+select * from products where is_available = true;
+
+Should return empty (no products yet) but not an error.
+
+Test 2 — try to read orders without being logged in. In the SQL editor, switch the role to anon using the role selector at the top. Then run:
+sql
+
+select * from orders;
+
+Should return zero rows. If it returns anything, your RLS is wrong.
+
+Test 3 — try to insert a product as anon.
+sql
+
+insert into products (name, slug, price, category)
+values ('test', 'test', 100, 'crochet');
+
+Should fail with a policy violation error. If it succeeds, your RLS is wrong.
+
+Step 6 — Create an index for performance
+
+These aren't critical right now but add them before launch so the shop page stays fast as products grow.
+sql
+
+create index on products (category);
+create index on products (is_available);
+create index on products (is_featured);
+create index on orders (status);
+create index on orders (created_at desc);
+
+Step 7 — Set up your .env file locally
+
+Create a file called .env.local in your project root. Add these values from your Supabase dashboard.
+
+NEXT_PUBLIC_SUPABASE_URL=https://yourprojectid.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+RAZORPAY_KEY_ID=your_razorpay_key_id
+RAZORPAY_KEY_SECRET=your_razorpay_secret
+RAZORPAY_WEBHOOK_SECRET=your_webhook_secret
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_key
+CLOUDINARY_API_SECRET=your_cloudinary_secret
+RESEND_API_KEY=your_resend_key
+
+Variables prefixed with NEXT_PUBLIC_ are safe to expose to the browser. Everything else is server-side only. The anon key gets the NEXT_PUBLIC_ prefix because it's meant to be public. The service role key never gets it.
+
+Add .env.local to your .gitignore right now before anything else.
+
+Step 8 — Verify your gitignore
+
+Your .gitignore must include at minimum:
+
+.env
+.env.local
+.env.production
+node_modules
+.next
+
+Run git status and make sure none of your env files show up as untracked. If they do, they're not being ignored — fix this before your first commit.
+
+What you have now
+
+Three tables with proper types and constraints. RLS enabled and tested on all three. Admin access locked to your friend's email only. Guest checkout possible without exposing order data publicly. Indexes ready for performance. Environment variables set up safely.

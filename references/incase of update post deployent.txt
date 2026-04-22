@@ -1,0 +1,36 @@
+
+No, it is absolutely not a one-time deploy.
+The way the stack is set up, updating anything is straightforward and non-destructive. Let me break down each layer.
+
+Frontend changes — easiest of all
+Vercel is connected to your GitHub repository. The workflow is:
+You make a change locally → you push to GitHub → Vercel automatically detects the push → it rebuilds and redeploys in about 60-90 seconds → the live site updates.
+That's it. Your friend wants to change the banner color, update the about section text, change the layout of the shop page — you edit the code, push, done. No manual deployment steps, no FTP, no SSH.
+Vercel also gives you preview deployments automatically. Every time you push to a non-main branch, Vercel deploys it to a temporary URL like crochet-shop-git-feature-xyz.vercel.app. You can test it live before merging to main. This means you never accidentally break the live site while testing changes.
+
+Backend / API route changes — same process
+Your API routes live inside the Next.js project in src/app/api/. They are just TypeScript files. You change them the same way — edit locally, push to GitHub, Vercel redeploys everything together. The frontend and backend deploy as one unit.
+So if you want to add a new API endpoint, modify the checkout logic, add a new validation rule — same workflow, same 60-90 second deploy.
+
+Database changes — requires more care
+This is the one area where you need to be deliberate. The database is not redeployed with your code — it lives independently on Supabase and persists forever regardless of what you do on Vercel.
+If you need to change the database structure — add a column, create a new table, modify an RLS policy — you do it through Supabase's SQL editor or their migration system. It does not affect existing data unless you explicitly drop something.
+The important rule is never make breaking database changes without thinking through the impact first. For example if you rename a column in Supabase but forget to update your API code, the site breaks until you redeploy the updated code. So database changes and code changes that depend on them should be deployed together carefully.
+For a small project like this, the workflow for a database change is — make the change in Supabase SQL editor, immediately push the updated code to GitHub, Vercel deploys within 90 seconds, done.
+
+Product updates — your friend does this herself
+This is an important one. Your friend adding new products, marking items as sold out, updating prices — none of that requires you to touch code or redeploy anything. That all happens through the admin panel you're building, which talks directly to Supabase in real time. She logs in, uploads a photo, fills in the details, hits save — the product appears on the live site instantly because the shop page fetches from Supabase on every request.
+
+What actually requires your involvement after launch
+Things your friend can do herself through the admin panel — add products, remove products, update prices, mark sold out, view orders, update order status.
+Things that require you to change code and redeploy — new pages, UI redesigns, new features, changes to checkout flow, new API logic, dependency updates.
+Things that require you to touch Supabase directly — schema changes, new tables, RLS policy changes, performance fixes.
+Things that are fully automatic and need nobody — SSL certificate renewal (Cloudflare handles it), Vercel infrastructure scaling, Cloudflare DDoS protection, Supabase database backups on Pro tier.
+
+One real gotcha to know about
+Vercel's free tier has a soft limit of 100 deployments per day. You will never hit this normally. But if you're rapidly iterating and pushing many small commits, be aware. The solution is to batch your changes into meaningful commits rather than pushing every tiny edit.
+Also worth knowing — if you ever need to roll back a deployment because something broke, Vercel keeps your full deployment history and you can roll back to any previous deploy in one click from their dashboard. No data is lost because the database is separate from the deployment.
+
+The short answer
+Think of it like a Google Doc. The document is always live, always editable, and changes appear immediately. The code is your document. Push a change, it goes live. The database is separate and persistent. Your friend's admin panel is her interface to manage content without needing you.
+Ready to continue with the fron

@@ -1,0 +1,64 @@
+Sitemap — Public facing
+The site needs exactly six public pages. No more, keep it clean.
+Home page — hero section with her brand name and a short tagline, featured products section showing 4-6 highlighted items, a small about section, and a link to the shop. This is the first impression page.
+Shop page — full product grid showing all available items. Filter by category — crochet or polaroids. Each product card shows image, name, price, and an "add to cart" or "order now" button. Sold out items shown greyed out but still visible.
+Product detail page — larger images, full description, size or variant selector if applicable, price, add to cart, and a section for custom order inquiry if she wants to offer that.
+Cart page — list of items added, quantities, total price, proceed to checkout button.
+Checkout page — shipping address form, order summary, Razorpay payment button. No account creation required for buying — guest checkout only to reduce friction.
+Contact page — simple form with name, email, message. WhatsApp link as an alternative. Custom order requests go here too.
+
+Sitemap — Legal pages
+These are not optional. Three pages, minimal content, but must exist.
+Privacy policy — what data you collect, why, how long you keep it, how users can request deletion. Required under India's IT Act and Razorpay's KYC requirements.
+Terms and conditions — refund policy, shipping timelines, custom order terms, limitation of liability.
+Shipping policy — how long orders take, which couriers are used, what happens if something gets lost.
+
+Sitemap — Admin panel
+This is a completely separate protected route, not linked from the public site anywhere. Access only via direct URL, protected by Supabase auth with your friend's email.
+Admin dashboard — overview of recent orders, total sales this month, low stock warnings.
+Product manager — add new product, edit existing product, mark as sold out, delete product. Image upload with EXIF strip happening here automatically before it goes to Cloudinary.
+Order manager — list of all orders with status. Pending, confirmed, shipped, delivered. Ability to update status manually. Each order shows buyer name, address, items, payment status.
+
+Page by page — what data each page touches
+Home page — reads from products table, only published items, no auth needed, fully cacheable by Cloudflare.
+Shop page — reads from products table with category filter. Same, fully public, cacheable.
+Product detail — reads single product by slug. Public, cacheable.
+Cart — lives entirely in browser localStorage or React state. Nothing hits the database until checkout.
+Checkout — writes to orders table, creates Razorpay order via your API route, then redirects to Razorpay payment page. On payment success Razorpay fires webhook to your API which updates order status to confirmed.
+Contact — writes to an enquiries table. Simple insert, no auth.
+Admin — all reads and writes go through Supabase with the authenticated user's JWT. RLS policies ensure only your friend's account can touch these routes.
+
+Database schema — tables you need
+Products table — id, name, slug, description, price, category (crochet or polaroid), images array of Cloudinary URLs, is_available boolean, is_featured boolean, created_at.
+Orders table — id, razorpay_order_id, razorpay_payment_id, buyer name, buyer email, buyer phone, shipping address as JSON, items as JSON array of product id and quantity, total amount, status (pending / confirmed / shipped / delivered), created_at.
+Enquiries table — id, name, email, message, is_custom_order boolean, created_at.
+Admins table — not needed separately, just use Supabase auth and check the user's email matches your friend's in RLS policies.
+
+RLS policies you must write
+Products — anyone can read where is_available is true. Only authenticated admin can insert, update, delete.
+Orders — no public read at all. Insert allowed without auth (so guest checkout works) but only the fields you explicitly allow. No read or update without admin auth. This means a buyer cannot look up someone else's order — you'll send them a confirmation email instead.
+Enquiries — insert only for public. Read and update for admin only.
+
+Admin authentication flow
+Your friend goes to yoursite.com/admin. If not logged in, redirected to a login page. She enters her email, Supabase sends a magic link to her inbox — no password to forget or get phished. She clicks the link, gets a JWT stored in the browser, all admin API calls include that JWT. Supabase RLS checks it server side on every query. If the JWT is missing or wrong, the query returns nothing — not an error, just empty, which leaks no information about what exists.
+
+Order confirmation email
+When the Razorpay webhook fires and you mark an order as confirmed, your Vercel API route should trigger a confirmation email to the buyer. Use Resend — it has a free tier of 3000 emails per month, dead simple API, one npm package. Email contains order summary, shipping timeline, and a WhatsApp link to your friend for any questions.
+
+Mobile first considerations
+Most buyers will be on phone. Every layout decision defaults to mobile. Product grid is single column on mobile, two columns on tablet, three on desktop. Images are lazy loaded. Checkout form fields are large enough to tap without zooming. Razorpay's payment sheet is already mobile optimized so that part handles itself.
+
+Secrets and git hygiene
+Before the first commit, your .gitignore must include .env and .env.local. Set up GitHub's secret scanning — it's free and will alert you if a key accidentally gets committed. All environment variables live in Vercel's dashboard, never in code. You need four secrets — Supabase URL, Supabase anon key, Razorpay key ID, Razorpay webhook secret. Cloudinary config goes in there too.
+
+Monitoring
+Use UptimeRobot free tier — checks your site every 5 minutes and sends you a WhatsApp or email if it goes down. Vercel's dashboard shows function errors and performance. Supabase dashboard shows slow queries and connection counts. That's enough monitoring for a small store without spending anything.
+
+Backup strategy
+Every Sunday, manually export Supabase data using their dashboard CSV export for the orders and products tables. Store it in a Google Drive folder. It takes 2 minutes. Until she upgrades to Supabase Pro which has automatic daily backups, this is your safety net.
+
+Dependency hygiene
+Run npm audit before launch and after every new package install. Use exact version pinning in package.json — no caret or tilde ranges. Set up Dependabot on GitHub — it automatically opens pull requests when your dependencies have security vulnerabilities. Review every PR before merging.
+
+Pre-launch checklist summary
+Cloudflare is in front of Vercel and origin IP is masked. All HTTP traffic redirects to HTTPS. CSP headers set and tested. RLS enabled on every table and tested by trying to query as an unauthenticated user. EXIF strip verified by uploading a photo and checking metadata of the served image. Razorpay webhook signature verification in place and tested with a fake payload. Honeypot field in checkout form confirmed working. Burp Suite scan run against staging URL. No secrets in git history. Admin route not linked from anywhere public. Order confirmation email tested end to end. Site loads in under 3 seconds on a throttled 4G connection. All legal pages live.

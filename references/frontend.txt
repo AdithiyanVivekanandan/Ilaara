@@ -1,0 +1,2559 @@
+Let's build the frontend. We'll go page by page, starting with the foundation first.
+
+---
+
+**Step 1 — Global styles and theme**
+
+Open `src/app/globals.css` and replace everything with:
+
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg: #fdf8f4;
+    --surface: #ffffff;
+    --text-primary: #1a1a1a;
+    --text-secondary: #6b6b6b;
+    --accent: #c97d4e;
+    --accent-light: #f5ede4;
+    --border: #e8e0d8;
+    --success: #3d7a5e;
+    --error: #c0392b;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text-primary);
+    font-family: 'Inter', system-ui, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button {
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: inherit;
+  }
+
+  input, textarea, select {
+    font-family: inherit;
+  }
+}
+
+@layer utilities {
+  .container {
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+}
+```
+
+---
+
+**Step 2 — Tailwind config**
+
+Open `tailwind.config.ts` and update:
+
+```typescript
+import type { Config } from 'tailwindcss'
+
+const config: Config = {
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    extend: {
+      colors: {
+        bg: '#fdf8f4',
+        surface: '#ffffff',
+        accent: '#c97d4e',
+        'accent-light': '#f5ede4',
+        border: '#e8e0d8',
+        'text-primary': '#1a1a1a',
+        'text-secondary': '#6b6b6b',
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
+    },
+  },
+  plugins: [],
+}
+
+export default config
+```
+
+---
+
+**Step 3 — Root layout**
+
+Open `src/app/layout.tsx` and replace:
+
+```typescript
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
+import './globals.css'
+
+const inter = Inter({ subsets: ['latin'] })
+
+export const metadata: Metadata = {
+  title: {
+    default: 'Stitch & Snap',
+    template: '%s | Stitch & Snap',
+  },
+  description: 'Handmade crochet pieces and polaroid prints. Made with love.',
+  keywords: ['crochet', 'polaroids', 'handmade', 'online shop'],
+  openGraph: {
+    title: 'Stitch & Snap',
+    description: 'Handmade crochet pieces and polaroid prints.',
+    type: 'website',
+  },
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body className={inter.className}>
+        {children}
+      </body>
+    </html>
+  )
+}
+```
+
+Replace "Stitch & Snap" with whatever your friend's brand name is.
+
+---
+
+**Step 4 — Cart context**
+
+Cart state lives in React context so any component can access it. Create `src/context/CartContext.tsx`:
+
+```typescript
+'use client'
+
+import { createContext, useContext, useReducer, useEffect, ReactNode } from 'react'
+
+export type CartItem = {
+  product_id: string
+  name: string
+  price: number
+  quantity: number
+  image: string
+}
+
+type CartState = {
+  items: CartItem[]
+}
+
+type CartAction =
+  | { type: 'ADD_ITEM'; payload: CartItem }
+  | { type: 'REMOVE_ITEM'; payload: string }
+  | { type: 'UPDATE_QUANTITY'; payload: { product_id: string; quantity: number } }
+  | { type: 'CLEAR_CART' }
+
+function cartReducer(state: CartState, action: CartAction): CartState {
+  switch (action.type) {
+    case 'ADD_ITEM': {
+      const existing = state.items.find(i => i.product_id === action.payload.product_id)
+      if (existing) {
+        return {
+          items: state.items.map(i =>
+            i.product_id === action.payload.product_id
+              ? { ...i, quantity: Math.min(i.quantity + 1, 10) }
+              : i
+          ),
+        }
+      }
+      return { items: [...state.items, { ...action.payload, quantity: 1 }] }
+    }
+    case 'REMOVE_ITEM':
+      return { items: state.items.filter(i => i.product_id !== action.payload) }
+    case 'UPDATE_QUANTITY':
+      return {
+        items: state.items.map(i =>
+          i.product_id === action.payload.product_id
+            ? { ...i, quantity: Math.max(1, Math.min(10, action.payload.quantity)) }
+            : i
+        ),
+      }
+    case 'CLEAR_CART':
+      return { items: [] }
+    default:
+      return state
+  }
+}
+
+type CartContextType = {
+  items: CartItem[]
+  addItem: (item: CartItem) => void
+  removeItem: (product_id: string) => void
+  updateQuantity: (product_id: string, quantity: number) => void
+  clearCart: () => void
+  totalItems: number
+  totalAmount: number
+}
+
+const CartContext = createContext<CartContextType | null>(null)
+
+export function CartProvider({ children }: { children: ReactNode }) {
+  const [state, dispatch] = useReducer(cartReducer, { items: [] })
+
+  // Persist cart to sessionStorage — not localStorage
+  // sessionStorage clears when browser closes which is better for privacy
+  useEffect(() => {
+    const saved = sessionStorage.getItem('cart')
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        parsed.forEach((item: CartItem) =>
+          dispatch({ type: 'ADD_ITEM', payload: item })
+        )
+      } catch {}
+    }
+  }, [])
+
+  useEffect(() => {
+    sessionStorage.setItem('cart', JSON.stringify(state.items))
+  }, [state.items])
+
+  const totalItems = state.items.reduce((sum, i) => sum + i.quantity, 0)
+  const totalAmount = state.items.reduce((sum, i) => sum + i.price * i.quantity, 0)
+
+  return (
+    <CartContext.Provider value={{
+      items: state.items,
+      addItem: (item) => dispatch({ type: 'ADD_ITEM', payload: item }),
+      removeItem: (id) => dispatch({ type: 'REMOVE_ITEM', payload: id }),
+      updateQuantity: (id, qty) => dispatch({ type: 'UPDATE_QUANTITY', payload: { product_id: id, quantity: qty } }),
+      clearCart: () => dispatch({ type: 'CLEAR_CART' }),
+      totalItems,
+      totalAmount,
+    }}>
+      {children}
+    </CartContext.Provider>
+  )
+}
+
+export function useCart() {
+  const ctx = useContext(CartContext)
+  if (!ctx) throw new Error('useCart must be used within CartProvider')
+  return ctx
+}
+```
+
+Note — using sessionStorage instead of localStorage. This is a deliberate privacy decision. Cart data clears when the browser closes. A buyer's cart isn't sitting on a shared device permanently.
+
+Now wrap your root layout with the provider. Update `src/app/layout.tsx`:
+
+```typescript
+import { CartProvider } from '@/context/CartContext'
+
+// inside the body tag:
+<body className={inter.className}>
+  <CartProvider>
+    {children}
+  </CartProvider>
+</body>
+```
+
+---
+
+**Step 5 — Shared components**
+
+Create `src/components/Navbar.tsx`:
+
+```typescript
+'use client'
+
+import Link from 'next/link'
+import { useCart } from '@/context/CartContext'
+import { useState } from 'react'
+
+export default function Navbar() {
+  const { totalItems } = useCart()
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  return (
+    <nav className="sticky top-0 z-50 bg-surface border-b border-border">
+      <div className="container flex items-center justify-between h-16">
+
+        <Link href="/" className="text-lg font-semibold tracking-tight">
+          Stitch & Snap
+        </Link>
+
+        {/* Desktop nav */}
+        <div className="hidden md:flex items-center gap-8 text-sm text-text-secondary">
+          <Link href="/shop" className="hover:text-text-primary transition-colors">Shop</Link>
+          <Link href="/contact" className="hover:text-text-primary transition-colors">Contact</Link>
+          <Link href="/cart" className="relative hover:text-text-primary transition-colors">
+            Cart
+            {totalItems > 0 && (
+              <span className="absolute -top-2 -right-4 bg-accent text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                {totalItems}
+              </span>
+            )}
+          </Link>
+        </div>
+
+        {/* Mobile nav toggle */}
+        <button
+          className="md:hidden p-2"
+          onClick={() => setMenuOpen(!menuOpen)}
+          aria-label="Toggle menu"
+        >
+          <div className="w-5 h-0.5 bg-text-primary mb-1" />
+          <div className="w-5 h-0.5 bg-text-primary mb-1" />
+          <div className="w-5 h-0.5 bg-text-primary" />
+        </button>
+      </div>
+
+      {/* Mobile menu */}
+      {menuOpen && (
+        <div className="md:hidden border-t border-border bg-surface px-5 py-4 flex flex-col gap-4 text-sm">
+          <Link href="/shop" onClick={() => setMenuOpen(false)}>Shop</Link>
+          <Link href="/contact" onClick={() => setMenuOpen(false)}>Contact</Link>
+          <Link href="/cart" onClick={() => setMenuOpen(false)}>
+            Cart {totalItems > 0 && `(${totalItems})`}
+          </Link>
+        </div>
+      )}
+    </nav>
+  )
+}
+```
+
+Create `src/components/Footer.tsx`:
+
+```typescript
+import Link from 'next/link'
+
+export default function Footer() {
+  return (
+    <footer className="border-t border-border mt-20 py-10 text-sm text-text-secondary">
+      <div className="container flex flex-col md:flex-row justify-between gap-6">
+        <div>
+          <p className="font-medium text-text-primary mb-1">Stitch & Snap</p>
+          <p>Handmade with love.</p>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Link href="/privacy" className="hover:text-text-primary transition-colors">Privacy policy</Link>
+          <Link href="/terms" className="hover:text-text-primary transition-colors">Terms & conditions</Link>
+          <Link href="/shipping" className="hover:text-text-primary transition-colors">Shipping policy</Link>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Link href="/shop" className="hover:text-text-primary transition-colors">Shop</Link>
+          <Link href="/contact" className="hover:text-text-primary transition-colors">Contact</Link>
+        </div>
+      </div>
+      <div className="container mt-8 pt-6 border-t border-border text-xs">
+        © {new Date().getFullYear()} Stitch & Snap. All rights reserved.
+      </div>
+    </footer>
+  )
+}
+```
+
+Create `src/components/ProductCard.tsx`:
+
+```typescript
+'use client'
+
+import Link from 'next/link'
+import Image from 'next/image'
+import { useCart } from '@/context/CartContext'
+
+type Product = {
+  id: string
+  name: string
+  slug: string
+  price: number
+  category: string
+  images: string[]
+  is_available: boolean
+}
+
+export default function ProductCard({ product }: { product: Product }) {
+  const { addItem } = useCart()
+
+  function handleAddToCart() {
+    addItem({
+      product_id: product.id,
+      name: product.name,
+      price: product.price,
+      quantity: 1,
+      image: product.images[0] || '',
+    })
+  }
+
+  return (
+    <div className="bg-surface rounded-2xl overflow-hidden border border-border group">
+      <Link href={`/product/${product.slug}`}>
+        <div className="relative aspect-square overflow-hidden bg-accent-light">
+          {product.images[0] ? (
+            <Image
+              src={product.images[0]}
+              alt={product.name}
+              fill
+              className="object-cover group-hover:scale-105 transition-transform duration-500"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-text-secondary text-sm">
+              No image
+            </div>
+          )}
+          {!product.is_available && (
+            <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
+              <span className="text-sm font-medium text-text-secondary">Sold out</span>
+            </div>
+          )}
+          <span className="absolute top-3 left-3 text-xs bg-white/90 px-2 py-1 rounded-full capitalize text-text-secondary">
+            {product.category}
+          </span>
+        </div>
+      </Link>
+
+      <div className="p-4">
+        <Link href={`/product/${product.slug}`}>
+          <h3 className="font-medium text-text-primary hover:text-accent transition-colors mb-1">
+            {product.name}
+          </h3>
+        </Link>
+        <div className="flex items-center justify-between mt-3">
+          <span className="text-accent font-semibold">₹{product.price.toLocaleString('en-IN')}</span>
+          <button
+            onClick={handleAddToCart}
+            disabled={!product.is_available}
+            className="text-sm bg-accent text-white px-4 py-1.5 rounded-full hover:bg-opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {product.is_available ? 'Add to cart' : 'Sold out'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+---
+
+**Step 6 — Home page**
+
+Open `src/app/(public)/page.tsx`:
+
+```typescript
+import Link from 'next/link'
+import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
+import ProductCard from '@/components/ProductCard'
+
+async function getFeaturedProducts() {
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/products?is_featured=eq.true&is_available=eq.true&select=id,name,slug,price,category,images`,
+    {
+      headers: {
+        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
+      },
+      next: { revalidate: 60 },
+    }
+  )
+  if (!res.ok) return []
+  return res.json()
+}
+
+export default async function HomePage() {
+  const featured = await getFeaturedProducts()
+
+  return (
+    <>
+      <Navbar />
+      <main>
+
+        {/* Hero */}
+        <section className="bg-accent-light py-24 px-5">
+          <div className="container text-center">
+            <p className="text-sm text-accent uppercase tracking-widest mb-4">Handmade with love</p>
+            <h1 className="text-4xl md:text-6xl font-semibold text-text-primary mb-6 leading-tight">
+              Crochet pieces &<br />polaroid prints
+            </h1>
+            <p className="text-text-secondary text-lg mb-8 max-w-md mx-auto">
+              Each piece is made by hand, one at a time. No two are exactly alike.
+            </p>
+            <Link
+              href="/shop"
+              className="inline-block bg-accent text-white px-8 py-3 rounded-full text-sm font-medium hover:bg-opacity-90 transition-all"
+            >
+              Browse the shop
+            </Link>
+          </div>
+        </section>
+
+        {/* Featured products */}
+        {featured.length > 0 && (
+          <section className="py-20">
+            <div className="container">
+              <div className="flex items-center justify-between mb-10">
+                <h2 className="text-2xl font-semibold">Featured pieces</h2>
+                <Link href="/shop" className="text-sm text-accent hover:underline">
+                  View all
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {featured.map((product: any) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* About section */}
+        <section className="py-20 bg-surface">
+          <div className="container max-w-2xl text-center">
+            <h2 className="text-2xl font-semibold mb-4">About the shop</h2>
+            <p className="text-text-secondary leading-relaxed mb-6">
+              Every crochet piece is handmade to order. Every polaroid is shot and printed with care.
+              This is a one-person shop and each item gets my full attention before it reaches you.
+            </p>
+            <Link href="/contact" className="text-accent text-sm hover:underline">
+              Want something custom? Get in touch
+            </Link>
+          </div>
+        </section>
+
+      </main>
+      <Footer />
+    </>
+  )
+}
+```
+
+---
+
+**Step 7 — Shop page**
+
+Create `src/app/(public)/shop/page.tsx`:
+
+```typescript
+'use client'
+
+import { useEffect, useState } from 'react'
+import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
+import ProductCard from '@/components/ProductCard'
+
+type Product = {
+  id: string
+  name: string
+  slug: string
+  price: number
+  category: string
+  images: string[]
+  is_available: boolean
+}
+
+export default function ShopPage() {
+  const [products, setProducts] = useState<Product[]>([])
+  const [category, setCategory] = useState<string>('all')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchProducts() {
+      setLoading(true)
+      const url = category === 'all'
+        ? '/api/products'
+        : `/api/products?category=${category}`
+      const res = await fetch(url)
+      const data = await res.json()
+      setProducts(data)
+      setLoading(false)
+    }
+    fetchProducts()
+  }, [category])
+
+  const categories = [
+    { value: 'all', label: 'All' },
+    { value: 'crochet', label: 'Crochet' },
+    { value: 'polaroid', label: 'Polaroids' },
+  ]
+
+  return (
+    <>
+      <Navbar />
+      <main className="py-16">
+        <div className="container">
+
+          <div className="mb-10">
+            <h1 className="text-3xl font-semibold mb-2">Shop</h1>
+            <p className="text-text-secondary">All items are handmade. Sold out items are shown but unavailable.</p>
+          </div>
+
+          {/* Category filter */}
+          <div className="flex gap-3 mb-10">
+            {categories.map(cat => (
+              <button
+                key={cat.value}
+                onClick={() => setCategory(cat.value)}
+                className={`px-5 py-2 rounded-full text-sm transition-all border ${
+                  category === cat.value
+                    ? 'bg-accent text-white border-accent'
+                    : 'bg-surface border-border text-text-secondary hover:border-accent hover:text-accent'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Products grid */}
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="bg-surface rounded-2xl border border-border overflow-hidden animate-pulse">
+                  <div className="aspect-square bg-accent-light" />
+                  <div className="p-4">
+                    <div className="h-4 bg-accent-light rounded mb-3 w-3/4" />
+                    <div className="h-4 bg-accent-light rounded w-1/3" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : products.length === 0 ? (
+            <div className="text-center py-20 text-text-secondary">
+              No products found. Check back soon!
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {products.map(product => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
+
+        </div>
+      </main>
+      <Footer />
+    </>
+  )
+}
+```
+
+---
+
+**Step 8 — Checkout page with honeypot**
+
+Create `src/app/(public)/checkout/page.tsx`:
+
+```typescript
+'use client'
+
+import { useState } from 'react'
+import { useCart } from '@/context/CartContext'
+import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
+import { useRouter } from 'next/navigation'
+
+declare global {
+  interface Window { Razorpay: any }
+}
+
+export default function CheckoutPage() {
+  const { items, totalAmount, clearCart } = useCart()
+  const router = useRouter()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const [form, setForm] = useState({
+    buyerName: '',
+    buyerEmail: '',
+    buyerPhone: '',
+    line1: '',
+    line2: '',
+    city: '',
+    state: '',
+    pincode: '',
+    // honeypot — hidden from real users
+    website: '',
+  })
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
+  }
+
+  async function handleCheckout() {
+    setError('')
+    setLoading(true)
+
+    try {
+      // Load Razorpay script dynamically
+      await loadRazorpayScript()
+
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          buyerName: form.buyerName,
+          buyerEmail: form.buyerEmail,
+          buyerPhone: form.buyerPhone,
+          shippingAddress: {
+            line1: form.line1,
+            line2: form.line2,
+            city: form.city,
+            state: form.state,
+            pincode: form.pincode,
+          },
+          items: items.map(i => ({
+            product_id: i.product_id,
+            quantity: i.quantity,
+          })),
+          website: form.website, // honeypot
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || 'Something went wrong')
+        setLoading(false)
+        return
+      }
+
+      // Open Razorpay payment sheet
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: data.amount,
+        currency: data.currency,
+        order_id: data.orderId,
+        name: 'Stitch & Snap',
+        description: 'Order payment',
+        prefill: {
+          name: form.buyerName,
+          email: form.buyerEmail,
+          contact: form.buyerPhone,
+        },
+        theme: { color: '#c97d4e' },
+        handler: function() {
+          clearCart()
+          router.push('/checkout/success')
+        },
+        modal: {
+          ondismiss: function() {
+            setLoading(false)
+          }
+        }
+      }
+
+      const rzp = new window.Razorpay(options)
+      rzp.open()
+
+    } catch (err) {
+      setError('Something went wrong. Please try again.')
+      setLoading(false)
+    }
+  }
+
+  if (items.length === 0) {
+    return (
+      <>
+        <Navbar />
+        <div className="container py-20 text-center text-text-secondary">
+          Your cart is empty.
+        </div>
+        <Footer />
+      </>
+    )
+  }
+
+  return (
+    <>
+      {/* Razorpay script */}
+      <script src="https://checkout.razorpay.com/v1/checkout.js" async />
+
+      <Navbar />
+      <main className="py-16">
+        <div className="container max-w-2xl">
+          <h1 className="text-3xl font-semibold mb-10">Checkout</h1>
+
+          <div className="bg-surface border border-border rounded-2xl p-6 mb-6">
+            <h2 className="font-medium mb-4">Order summary</h2>
+            {items.map(item => (
+              <div key={item.product_id} className="flex justify-between py-2 border-b border-border last:border-0 text-sm">
+                <span>{item.name} × {item.quantity}</span>
+                <span>₹{(item.price * item.quantity).toLocaleString('en-IN')}</span>
+              </div>
+            ))}
+            <div className="flex justify-between pt-4 font-semibold">
+              <span>Total</span>
+              <span className="text-accent">₹{totalAmount.toLocaleString('en-IN')}</span>
+            </div>
+          </div>
+
+          <div className="bg-surface border border-border rounded-2xl p-6 space-y-4">
+            <h2 className="font-medium mb-2">Your details</h2>
+
+            {/* Honeypot — hidden from real users, visible to bots */}
+            <div style={{ position: 'absolute', left: '-9999px', opacity: 0, pointerEvents: 'none' }} aria-hidden="true">
+              <input
+                type="text"
+                name="website"
+                value={form.website}
+                onChange={handleChange}
+                tabIndex={-1}
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm text-text-secondary mb-1 block">Full name</label>
+                <input
+                  type="text"
+                  name="buyerName"
+                  value={form.buyerName}
+                  onChange={handleChange}
+                  className="w-full border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent"
+                  placeholder="Priya Sharma"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-text-secondary mb-1 block">Phone</label>
+                <input
+                  type="tel"
+                  name="buyerPhone"
+                  value={form.buyerPhone}
+                  onChange={handleChange}
+                  className="w-full border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent"
+                  placeholder="9876543210"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm text-text-secondary mb-1 block">Email</label>
+              <input
+                type="email"
+                name="buyerEmail"
+                value={form.buyerEmail}
+                onChange={handleChange}
+                className="w-full border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent"
+                placeholder="priya@email.com"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm text-text-secondary mb-1 block">Address line 1</label>
+              <input
+                type="text"
+                name="line1"
+                value={form.line1}
+                onChange={handleChange}
+                className="w-full border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent"
+                placeholder="Flat 4B, Sunrise Apartments"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm text-text-secondary mb-1 block">Address line 2 (optional)</label>
+              <input
+                type="text"
+                name="line2"
+                value={form.line2}
+                onChange={handleChange}
+                className="w-full border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent"
+                placeholder="Near City Mall"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div className="col-span-1">
+                <label className="text-sm text-text-secondary mb-1 block">City</label>
+                <input
+                  type="text"
+                  name="city"
+                  value={form.city}
+                  onChange={handleChange}
+                  className="w-full border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent"
+                  placeholder="Chennai"
+                />
+              </div>
+              <div className="col-span-1">
+                <label className="text-sm text-text-secondary mb-1 block">State</label>
+                <input
+                  type="text"
+                  name="state"
+                  value={form.state}
+                  onChange={handleChange}
+                  className="w-full border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent"
+                  placeholder="Tamil Nadu"
+                />
+              </div>
+              <div className="col-span-2 sm:col-span-1">
+                <label className="text-sm text-text-secondary mb-1 block">Pincode</label>
+                <input
+                  type="text"
+                  name="pincode"
+                  value={form.pincode}
+                  onChange={handleChange}
+                  className="w-full border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent"
+                  placeholder="600001"
+                  maxLength={6}
+                />
+              </div>
+            </div>
+
+            {error && (
+              <p className="text-sm text-red-600 bg-red-50 px-4 py-3 rounded-lg">{error}</p>
+            )}
+
+            <button
+              onClick={handleCheckout}
+              disabled={loading}
+              className="w-full bg-accent text-white py-3.5 rounded-full font-medium hover:bg-opacity-90 transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+            >
+              {loading ? 'Processing...' : `Pay ₹${totalAmount.toLocaleString('en-IN')}`}
+            </button>
+
+            <p className="text-xs text-text-secondary text-center">
+              Payments are processed securely by Razorpay. We never store your card details.
+            </p>
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </>
+  )
+}
+
+function loadRazorpayScript(): Promise<void> {
+  return new Promise((resolve) => {
+    if (window.Razorpay) { resolve(); return }
+    const script = document.createElement('script')
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.onload = () => resolve()
+    document.body.appendChild(script)
+  })
+}
+```
+
+Add `NEXT_PUBLIC_RAZORPAY_KEY_ID=your_key_id` to your `.env.local`.
+
+---
+
+**Step 9 — Order success page**
+
+Create `src/app/(public)/checkout/success/page.tsx`:
+
+```typescript
+import Link from 'next/link'
+import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
+
+export default function SuccessPage() {
+  return (
+    <>
+      <Navbar />
+      <main className="py-20">
+        <div className="container max-w-lg text-center">
+          <div className="text-5xl mb-6">🎉</div>
+          <h1 className="text-3xl font-semibold mb-4">Order confirmed!</h1>
+          <p className="text-text-secondary mb-3">
+            Thank you for your order. You'll receive a confirmation email shortly.
+          </p>
+          <p className="text-text-secondary mb-8">
+            Questions? Reach out on WhatsApp or use the contact form.
+          </p>
+          <div className="flex gap-4 justify-center">
+            <Link href="/shop" className="bg-accent text-white px-6 py-2.5 rounded-full text-sm hover:bg-opacity-90 transition-all">
+              Continue shopping
+            </Link>
+            <Link href="/contact" className="border border-border px-6 py-2.5 rounded-full text-sm hover:border-accent transition-all">
+              Contact us
+            </Link>
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </>
+  )
+}
+```
+
+---
+
+**What you have now**
+
+A complete, mobile-first frontend with global styles, cart state management, all public pages built, honeypot on the checkout form, Razorpay payment sheet integrated, order success flow, and security headers on every route via middleware.
+
+---
+
+**What's left to build**
+
+The product detail page, the cart page, the contact form, the three legal pages, and the admin panel. The admin panel is the most interesting part for you — it's where all the product management and order tracking lives, and it needs a proper protected layout.
+
+Want to continue with the admin panel next since that's the most security-relevant part, or finish the remaining public pages first?Q: What do you want to build next?
+A: Both togetherLet's finish everything. Public pages first, then admin panel.
+
+---
+
+**Product detail page**
+
+Create `src/app/(public)/product/[slug]/page.tsx`:
+
+```typescript
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
+import Image from 'next/image'
+import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
+import { useCart } from '@/context/CartContext'
+
+type Product = {
+  id: string
+  name: string
+  slug: string
+  description: string
+  price: number
+  category: string
+  images: string[]
+  is_available: boolean
+}
+
+export default function ProductDetailPage() {
+  const { slug } = useParams()
+  const { addItem } = useCart()
+  const [product, setProduct] = useState<Product | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [activeImage, setActiveImage] = useState(0)
+  const [added, setAdded] = useState(false)
+
+  useEffect(() => {
+    async function fetchProduct() {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/products?slug=eq.${slug}&is_available=eq.true&select=*`,
+        {
+          headers: {
+            apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
+          },
+        }
+      )
+      const data = await res.json()
+      setProduct(data[0] || null)
+      setLoading(false)
+    }
+    fetchProduct()
+  }, [slug])
+
+  function handleAddToCart() {
+    if (!product) return
+    addItem({
+      product_id: product.id,
+      name: product.name,
+      price: product.price,
+      quantity: 1,
+      image: product.images[0] || '',
+    })
+    setAdded(true)
+    setTimeout(() => setAdded(false), 2000)
+  }
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <div className="container py-20">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 animate-pulse">
+            <div className="aspect-square bg-accent-light rounded-2xl" />
+            <div className="space-y-4">
+              <div className="h-8 bg-accent-light rounded w-3/4" />
+              <div className="h-4 bg-accent-light rounded w-1/4" />
+              <div className="h-24 bg-accent-light rounded" />
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </>
+    )
+  }
+
+  if (!product) {
+    return (
+      <>
+        <Navbar />
+        <div className="container py-20 text-center text-text-secondary">
+          Product not found.
+        </div>
+        <Footer />
+      </>
+    )
+  }
+
+  return (
+    <>
+      <Navbar />
+      <main className="py-16">
+        <div className="container max-w-4xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+
+            {/* Images */}
+            <div>
+              <div className="relative aspect-square rounded-2xl overflow-hidden bg-accent-light mb-3">
+                {product.images[activeImage] && (
+                  <Image
+                    src={product.images[activeImage]}
+                    alt={product.name}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    priority
+                  />
+                )}
+                {!product.is_available && (
+                  <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
+                    <span className="font-medium text-text-secondary">Sold out</span>
+                  </div>
+                )}
+              </div>
+              {/* Thumbnail strip */}
+              {product.images.length > 1 && (
+                <div className="flex gap-2">
+                  {product.images.map((img, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setActiveImage(i)}
+                      className={`relative w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                        activeImage === i ? 'border-accent' : 'border-transparent'
+                      }`}
+                    >
+                      <Image src={img} alt="" fill className="object-cover" sizes="64px" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Details */}
+            <div>
+              <span className="text-xs text-accent uppercase tracking-widest capitalize">
+                {product.category}
+              </span>
+              <h1 className="text-3xl font-semibold mt-2 mb-4">{product.name}</h1>
+              <p className="text-2xl text-accent font-semibold mb-6">
+                ₹{product.price.toLocaleString('en-IN')}
+              </p>
+
+              {product.description && (
+                <p className="text-text-secondary leading-relaxed mb-8">
+                  {product.description}
+                </p>
+              )}
+
+              <button
+                onClick={handleAddToCart}
+                disabled={!product.is_available}
+                className="w-full bg-accent text-white py-3.5 rounded-full font-medium hover:bg-opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed mb-4"
+              >
+                {added ? 'Added to cart!' : product.is_available ? 'Add to cart' : 'Sold out'}
+              </button>
+
+              <p className="text-xs text-text-secondary text-center">
+                Handmade item — slight variations are part of the charm.
+              </p>
+
+              <div className="mt-8 pt-8 border-t border-border space-y-3 text-sm text-text-secondary">
+                <p>Ships within 3–5 business days</p>
+                <p>Custom orders available via the contact form</p>
+                <p>All sales final — contact us if there's an issue</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </>
+  )
+}
+```
+
+---
+
+**Cart page**
+
+Create `src/app/(public)/cart/page.tsx`:
+
+```typescript
+'use client'
+
+import Link from 'next/link'
+import Image from 'next/image'
+import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
+import { useCart } from '@/context/CartContext'
+
+export default function CartPage() {
+  const { items, removeItem, updateQuantity, totalAmount } = useCart()
+
+  if (items.length === 0) {
+    return (
+      <>
+        <Navbar />
+        <main className="py-20">
+          <div className="container max-w-lg text-center">
+            <p className="text-text-secondary mb-6">Your cart is empty.</p>
+            <Link
+              href="/shop"
+              className="bg-accent text-white px-6 py-2.5 rounded-full text-sm hover:bg-opacity-90 transition-all"
+            >
+              Browse the shop
+            </Link>
+          </div>
+        </main>
+        <Footer />
+      </>
+    )
+  }
+
+  return (
+    <>
+      <Navbar />
+      <main className="py-16">
+        <div className="container max-w-2xl">
+          <h1 className="text-3xl font-semibold mb-10">Your cart</h1>
+
+          <div className="space-y-4 mb-8">
+            {items.map(item => (
+              <div
+                key={item.product_id}
+                className="bg-surface border border-border rounded-2xl p-4 flex items-center gap-4"
+              >
+                {/* Image */}
+                <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-accent-light flex-shrink-0">
+                  {item.image && (
+                    <Image src={item.image} alt={item.name} fill className="object-cover" sizes="80px" />
+                  )}
+                </div>
+
+                {/* Details */}
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{item.name}</p>
+                  <p className="text-accent text-sm mt-0.5">₹{item.price.toLocaleString('en-IN')}</p>
+
+                  {/* Quantity control */}
+                  <div className="flex items-center gap-2 mt-2">
+                    <button
+                      onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
+                      className="w-7 h-7 rounded-full border border-border flex items-center justify-center text-text-secondary hover:border-accent transition-colors"
+                    >
+                      −
+                    </button>
+                    <span className="text-sm w-4 text-center">{item.quantity}</span>
+                    <button
+                      onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
+                      className="w-7 h-7 rounded-full border border-border flex items-center justify-center text-text-secondary hover:border-accent transition-colors"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                {/* Line total + remove */}
+                <div className="text-right flex-shrink-0">
+                  <p className="font-medium text-sm">
+                    ₹{(item.price * item.quantity).toLocaleString('en-IN')}
+                  </p>
+                  <button
+                    onClick={() => removeItem(item.product_id)}
+                    className="text-xs text-text-secondary hover:text-red-500 transition-colors mt-2"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Summary */}
+          <div className="bg-surface border border-border rounded-2xl p-6">
+            <div className="flex justify-between mb-2 text-sm text-text-secondary">
+              <span>Subtotal</span>
+              <span>₹{totalAmount.toLocaleString('en-IN')}</span>
+            </div>
+            <div className="flex justify-between mb-6 text-sm text-text-secondary">
+              <span>Shipping</span>
+              <span>Calculated at checkout</span>
+            </div>
+            <div className="flex justify-between font-semibold border-t border-border pt-4 mb-6">
+              <span>Total</span>
+              <span className="text-accent">₹{totalAmount.toLocaleString('en-IN')}</span>
+            </div>
+            <Link
+              href="/checkout"
+              className="block w-full text-center bg-accent text-white py-3.5 rounded-full font-medium hover:bg-opacity-90 transition-all"
+            >
+              Proceed to checkout
+            </Link>
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </>
+  )
+}
+```
+
+---
+
+**Contact page**
+
+Create `src/app/(public)/contact/page.tsx`:
+
+```typescript
+'use client'
+
+import { useState } from 'react'
+import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
+
+export default function ContactPage() {
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    message: '',
+    isCustomOrder: false,
+    website: '', // honeypot
+  })
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
+    const target = e.target
+    setForm(prev => ({
+      ...prev,
+      [target.name]: target.type === 'checkbox'
+        ? (target as HTMLInputElement).checked
+        : target.value,
+    }))
+  }
+
+  async function handleSubmit() {
+    setStatus('loading')
+    try {
+      const res = await fetch('/api/enquiries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      if (res.ok) {
+        setStatus('success')
+        setForm({ name: '', email: '', message: '', isCustomOrder: false, website: '' })
+      } else {
+        setStatus('error')
+      }
+    } catch {
+      setStatus('error')
+    }
+  }
+
+  return (
+    <>
+      <Navbar />
+      <main className="py-16">
+        <div className="container max-w-lg">
+          <h1 className="text-3xl font-semibold mb-2">Get in touch</h1>
+          <p className="text-text-secondary mb-10">
+            Custom orders, general questions, or just saying hi — all welcome.
+          </p>
+
+          {status === 'success' ? (
+            <div className="bg-green-50 border border-green-200 rounded-2xl p-8 text-center">
+              <p className="font-medium text-green-800 mb-2">Message sent!</p>
+              <p className="text-green-700 text-sm">I'll get back to you as soon as possible.</p>
+            </div>
+          ) : (
+            <div className="bg-surface border border-border rounded-2xl p-6 space-y-4">
+
+              {/* Honeypot */}
+              <div style={{ position: 'absolute', left: '-9999px', opacity: 0, pointerEvents: 'none' }} aria-hidden="true">
+                <input
+                  type="text"
+                  name="website"
+                  value={form.website}
+                  onChange={handleChange}
+                  tabIndex={-1}
+                  autoComplete="off"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-text-secondary mb-1 block">Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={form.name}
+                  onChange={handleChange}
+                  className="w-full border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent"
+                  placeholder="Your name"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-text-secondary mb-1 block">Email</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  className="w-full border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent"
+                  placeholder="you@email.com"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-text-secondary mb-1 block">Message</label>
+                <textarea
+                  name="message"
+                  value={form.message}
+                  onChange={handleChange}
+                  rows={5}
+                  className="w-full border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent resize-none"
+                  placeholder="What's on your mind?"
+                />
+              </div>
+
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="isCustomOrder"
+                  checked={form.isCustomOrder}
+                  onChange={handleChange}
+                  className="w-4 h-4 accent-accent"
+                />
+                <span className="text-sm text-text-secondary">This is a custom order request</span>
+              </label>
+
+              {status === 'error' && (
+                <p className="text-sm text-red-600 bg-red-50 px-4 py-3 rounded-lg">
+                  Something went wrong. Please try again.
+                </p>
+              )}
+
+              <button
+                onClick={handleSubmit}
+                disabled={status === 'loading'}
+                className="w-full bg-accent text-white py-3 rounded-full text-sm font-medium hover:bg-opacity-90 transition-all disabled:opacity-60"
+              >
+                {status === 'loading' ? 'Sending...' : 'Send message'}
+              </button>
+            </div>
+          )}
+
+          <div className="mt-8 text-center text-sm text-text-secondary">
+            Prefer WhatsApp?{' '}
+            
+              href="https://wa.me/91XXXXXXXXXX"
+              className="text-accent hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Message directly
+            </a>
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </>
+  )
+}
+```
+
+---
+
+**Legal pages — all three**
+
+These are minimal but legally necessary. Create all three.
+
+`src/app/(public)/privacy/page.tsx`:
+
+```typescript
+import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
+
+export default function PrivacyPage() {
+  return (
+    <>
+      <Navbar />
+      <main className="py-16">
+        <div className="container max-w-2xl prose prose-sm">
+          <h1 className="text-3xl font-semibold mb-8">Privacy policy</h1>
+          <p className="text-text-secondary text-sm mb-8">Last updated: {new Date().toLocaleDateString('en-IN')}</p>
+
+          <section className="mb-8">
+            <h2 className="text-lg font-medium mb-3">What we collect</h2>
+            <p className="text-text-secondary leading-relaxed">
+              When you place an order, we collect your name, email address, phone number,
+              and shipping address. When you submit a contact form, we collect your name,
+              email, and message. We do not store payment information — all payments are
+              processed by Razorpay.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-lg font-medium mb-3">How we use your data</h2>
+            <p className="text-text-secondary leading-relaxed">
+              Your data is used only to fulfil your order, send you order confirmation
+              emails, and respond to your enquiries. We do not sell, share, or use your
+              data for advertising purposes.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-lg font-medium mb-3">Data retention</h2>
+            <p className="text-text-secondary leading-relaxed">
+              Order records are retained for up to 3 years for accounting purposes.
+              Enquiry records are deleted after 1 year. You may request deletion of
+              your data at any time by contacting us.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-lg font-medium mb-3">Your rights</h2>
+            <p className="text-text-secondary leading-relaxed">
+              You have the right to access, correct, or delete your personal data.
+              To make a request, contact us through the contact form.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-medium mb-3">Contact</h2>
+            <p className="text-text-secondary leading-relaxed">
+              For any privacy-related questions, use the contact form on this website.
+            </p>
+          </section>
+        </div>
+      </main>
+      <Footer />
+    </>
+  )
+}
+```
+
+`src/app/(public)/terms/page.tsx`:
+
+```typescript
+import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
+
+export default function TermsPage() {
+  return (
+    <>
+      <Navbar />
+      <main className="py-16">
+        <div className="container max-w-2xl">
+          <h1 className="text-3xl font-semibold mb-8">Terms & conditions</h1>
+          <p className="text-text-secondary text-sm mb-8">Last updated: {new Date().toLocaleDateString('en-IN')}</p>
+
+          <section className="mb-8">
+            <h2 className="text-lg font-medium mb-3">Products</h2>
+            <p className="text-text-secondary leading-relaxed">
+              All items are handmade. Slight variations in colour, size, and texture
+              are inherent to handmade goods and are not considered defects. Product
+              photos are as accurate as possible but may vary slightly from the
+              actual item.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-lg font-medium mb-3">Orders and payment</h2>
+            <p className="text-text-secondary leading-relaxed">
+              Orders are confirmed only after successful payment. We reserve the right
+              to cancel any order and issue a full refund at our discretion. Prices
+              are in Indian Rupees and include all applicable taxes.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-lg font-medium mb-3">Refunds and returns</h2>
+            <p className="text-text-secondary leading-relaxed">
+              All sales are final. If your item arrives damaged or significantly
+              different from what was described, contact us within 48 hours of
+              delivery with photos and we will work to resolve it.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-lg font-medium mb-3">Custom orders</h2>
+            <p className="text-text-secondary leading-relaxed">
+              Custom orders require full payment upfront. Once production has begun,
+              cancellations are not possible. Timelines for custom orders will be
+              communicated at the time of confirmation.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-medium mb-3">Limitation of liability</h2>
+            <p className="text-text-secondary leading-relaxed">
+              Our liability is limited to the value of the order placed. We are not
+              responsible for delays caused by courier services.
+            </p>
+          </section>
+        </div>
+      </main>
+      <Footer />
+    </>
+  )
+}
+```
+
+`src/app/(public)/shipping/page.tsx`:
+
+```typescript
+import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
+
+export default function ShippingPage() {
+  return (
+    <>
+      <Navbar />
+      <main className="py-16">
+        <div className="container max-w-2xl">
+          <h1 className="text-3xl font-semibold mb-8">Shipping policy</h1>
+
+          <section className="mb-8">
+            <h2 className="text-lg font-medium mb-3">Processing time</h2>
+            <p className="text-text-secondary leading-relaxed">
+              Orders are processed within 1–2 business days of payment confirmation.
+              Custom orders may take longer — timelines will be communicated individually.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-lg font-medium mb-3">Delivery time</h2>
+            <p className="text-text-secondary leading-relaxed">
+              Standard delivery within India takes 3–7 business days depending on
+              your location. Metro cities are typically faster. Remote pincodes
+              may take up to 10 business days.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-lg font-medium mb-3">Tracking</h2>
+            <p className="text-text-secondary leading-relaxed">
+              A tracking number will be shared via email or WhatsApp once your
+              order has been dispatched.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-medium mb-3">Lost or damaged shipments</h2>
+            <p className="text-text-secondary leading-relaxed">
+              If your order is lost or arrives damaged, contact us within 48 hours
+              with your order details and photos. We will investigate with the courier
+              and resolve the issue as quickly as possible.
+            </p>
+          </section>
+        </div>
+      </main>
+      <Footer />
+    </>
+  )
+}
+```
+
+---
+
+**Now the admin panel**
+
+First create the admin layout. Create `src/app/admin/layout.tsx`:
+
+```typescript
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import AdminSidebar from '@/components/admin/AdminSidebar'
+
+export default async function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user || user.email !== process.env.ADMIN_EMAIL) {
+    redirect('/admin/login')
+  }
+
+  return (
+    <div className="min-h-screen flex bg-gray-50">
+      <AdminSidebar />
+      <main className="flex-1 p-8 overflow-auto">
+        {children}
+      </main>
+    </div>
+  )
+}
+```
+
+Create `src/components/admin/AdminSidebar.tsx`:
+
+```typescript
+'use client'
+
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
+
+const links = [
+  { href: '/admin', label: 'Dashboard' },
+  { href: '/admin/products', label: 'Products' },
+  { href: '/admin/orders', label: 'Orders' },
+  { href: '/admin/enquiries', label: 'Enquiries' },
+]
+
+export default function AdminSidebar() {
+  const pathname = usePathname()
+  const router = useRouter()
+
+  async function handleSignOut() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/admin/login')
+  }
+
+  return (
+    <aside className="w-56 bg-white border-r border-gray-200 flex flex-col">
+      <div className="p-6 border-b border-gray-200">
+        <p className="font-semibold text-sm">Stitch & Snap</p>
+        <p className="text-xs text-gray-400 mt-0.5">Admin panel</p>
+      </div>
+
+      <nav className="flex-1 p-4 space-y-1">
+        {links.map(link => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
+              pathname === link.href
+                ? 'bg-accent text-white'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            {link.label}
+          </Link>
+        ))}
+      </nav>
+
+      <div className="p-4 border-t border-gray-200">
+        <button
+          onClick={handleSignOut}
+          className="w-full text-left px-3 py-2 text-sm text-gray-500 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50"
+        >
+          Sign out
+        </button>
+      </div>
+    </aside>
+  )
+}
+```
+
+---
+
+**Admin login page**
+
+Create `src/app/admin/login/page.tsx`:
+
+```typescript
+'use client'
+
+import { useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+
+export default function AdminLoginPage() {
+  const [email, setEmail] = useState('')
+  const [sent, setSent] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleLogin() {
+    setError('')
+    setLoading(true)
+
+    const supabase = createClient()
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/admin`,
+      },
+    })
+
+    if (error) {
+      setError('Failed to send magic link. Check the email address.')
+      setLoading(false)
+      return
+    }
+
+    setSent(true)
+    setLoading(false)
+  }
+
+  return (
+    <div className="min-h-screen bg-bg flex items-center justify-center px-5">
+      <div className="bg-white border border-border rounded-2xl p-8 w-full max-w-sm">
+        <h1 className="text-xl font-semibold mb-1">Admin login</h1>
+        <p className="text-text-secondary text-sm mb-6">
+          Enter your email to receive a magic link.
+        </p>
+
+        {sent ? (
+          <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-800">
+            Magic link sent! Check your inbox and click the link to sign in.
+          </div>
+        ) : (
+          <>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleLogin()}
+              placeholder="admin@email.com"
+              className="w-full border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent mb-3"
+            />
+            {error && (
+              <p className="text-red-600 text-sm mb-3">{error}</p>
+            )}
+            <button
+              onClick={handleLogin}
+              disabled={loading || !email}
+              className="w-full bg-accent text-white py-2.5 rounded-full text-sm font-medium hover:bg-opacity-90 transition-all disabled:opacity-60"
+            >
+              {loading ? 'Sending...' : 'Send magic link'}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+```
+
+---
+
+**Admin dashboard**
+
+Create `src/app/admin/page.tsx`:
+
+```typescript
+import { createClient } from '@/lib/supabase/server'
+
+export default async function AdminDashboard() {
+  const supabase = await createClient()
+
+  const [
+    { count: totalOrders },
+    { count: pendingOrders },
+    { count: totalProducts },
+    { count: newEnquiries },
+  ] = await Promise.all([
+    supabase.from('orders').select('*', { count: 'exact', head: true }),
+    supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+    supabase.from('products').select('*', { count: 'exact', head: true }),
+    supabase.from('enquiries').select('*', { count: 'exact', head: true }),
+  ])
+
+  const { data: recentOrders } = await supabase
+    .from('orders')
+    .select('id, buyer_name, total_amount, status, created_at')
+    .order('created_at', { ascending: false })
+    .limit(5)
+
+  const stats = [
+    { label: 'Total orders', value: totalOrders ?? 0 },
+    { label: 'Pending orders', value: pendingOrders ?? 0, highlight: true },
+    { label: 'Products listed', value: totalProducts ?? 0 },
+    { label: 'Enquiries', value: newEnquiries ?? 0 },
+  ]
+
+  const statusColors: Record<string, string> = {
+    pending: 'bg-yellow-100 text-yellow-800',
+    confirmed: 'bg-blue-100 text-blue-800',
+    shipped: 'bg-purple-100 text-purple-800',
+    delivered: 'bg-green-100 text-green-800',
+    cancelled: 'bg-red-100 text-red-800',
+  }
+
+  return (
+    <div>
+      <h1 className="text-2xl font-semibold mb-8">Dashboard</h1>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+        {stats.map(stat => (
+          <div
+            key={stat.label}
+            className={`bg-white rounded-2xl border p-5 ${
+              stat.highlight ? 'border-accent' : 'border-gray-200'
+            }`}
+          >
+            <p className="text-3xl font-semibold mb-1">{stat.value}</p>
+            <p className="text-sm text-gray-500">{stat.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Recent orders */}
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="font-medium">Recent orders</h2>
+        </div>
+        {recentOrders && recentOrders.length > 0 ? (
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+              <tr>
+                <th className="px-6 py-3 text-left">Buyer</th>
+                <th className="px-6 py-3 text-left">Amount</th>
+                <th className="px-6 py-3 text-left">Status</th>
+                <th className="px-6 py-3 text-left">Date</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {recentOrders.map(order => (
+                <tr key={order.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4">{order.buyer_name}</td>
+                  <td className="px-6 py-4">₹{order.total_amount.toLocaleString('en-IN')}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${statusColors[order.status]}`}>
+                      {order.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-gray-500">
+                    {new Date(order.created_at).toLocaleDateString('en-IN')}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <div className="px-6 py-10 text-center text-gray-400 text-sm">
+            No orders yet.
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+```
+
+---
+
+**Admin products page**
+
+Create `src/app/admin/products/page.tsx`:
+
+```typescript
+'use client'
+
+import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import Image from 'next/image'
+
+type Product = {
+  id: string
+  name: string
+  slug: string
+  price: number
+  category: string
+  images: string[]
+  is_available: boolean
+  is_featured: boolean
+}
+
+export default function AdminProductsPage() {
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [form, setForm] = useState({
+    name: '',
+    slug: '',
+    description: '',
+    price: '',
+    category: 'crochet',
+    is_featured: false,
+  })
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState('')
+
+  const supabase = createClient()
+
+  useEffect(() => { fetchProducts() }, [])
+
+  async function fetchProducts() {
+    const { data } = await supabase
+      .from('products')
+      .select('*')
+      .order('created_at', { ascending: false })
+    setProducts(data || [])
+    setLoading(false)
+  }
+
+  function handleNameChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const name = e.target.value
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    setForm(prev => ({ ...prev, name, slug }))
+  }
+
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+  }
+
+  async function handleSubmit() {
+    if (!imageFile) { alert('Please select an image'); return }
+    setUploading(true)
+
+    // Upload image — EXIF stripped server side
+    const formData = new FormData()
+    formData.append('file', imageFile)
+
+    const uploadRes = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    })
+    const { url } = await uploadRes.json()
+
+    // Insert product
+    const { error } = await supabase.from('products').insert({
+      name: form.name,
+      slug: form.slug,
+      description: form.description || null,
+      price: parseFloat(form.price),
+      category: form.category,
+      images: [url],
+      is_featured: form.is_featured,
+      is_available: true,
+    })
+
+    if (error) {
+      alert('Error saving product: ' + error.message)
+    } else {
+      setShowForm(false)
+      setForm({ name: '', slug: '', description: '', price: '', category: 'crochet', is_featured: false })
+      setImageFile(null)
+      setImagePreview('')
+      fetchProducts()
+    }
+    setUploading(false)
+  }
+
+  async function toggleAvailability(id: string, current: boolean) {
+    await supabase.from('products').update({ is_available: !current }).eq('id', id)
+    fetchProducts()
+  }
+
+  async function deleteProduct(id: string) {
+    if (!confirm('Delete this product? This cannot be undone.')) return
+    await supabase.from('products').delete().eq('id', id)
+    fetchProducts()
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-2xl font-semibold">Products</h1>
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="bg-accent text-white px-5 py-2 rounded-full text-sm hover:bg-opacity-90 transition-all"
+        >
+          {showForm ? 'Cancel' : '+ Add product'}
+        </button>
+      </div>
+
+      {/* Add product form */}
+      {showForm && (
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-8 space-y-4">
+          <h2 className="font-medium mb-2">New product</h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-gray-500 mb-1 block">Name</label>
+              <input
+                type="text"
+                value={form.name}
+                onChange={handleNameChange}
+                className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent"
+                placeholder="Blue crochet bag"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-gray-500 mb-1 block">Slug (auto-generated)</label>
+              <input
+                type="text"
+                value={form.slug}
+                onChange={e => setForm(prev => ({ ...prev, slug: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm text-gray-500 mb-1 block">Description</label>
+            <textarea
+              value={form.description}
+              onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))}
+              rows={3}
+              className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent resize-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-gray-500 mb-1 block">Price (₹)</label>
+              <input
+                type="number"
+                value={form.price}
+                onChange={e => setForm(prev => ({ ...prev, price: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent"
+                placeholder="499"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-gray-500 mb-1 block">Category</label>
+              <select
+                value={form.category}
+                onChange={e => setForm(prev => ({ ...prev, category: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent"
+              >
+                <option value="crochet">Crochet</option>
+                <option value="polaroid">Polaroid</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm text-gray-500 mb-1 block">Product image</label>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleImageChange}
+              className="text-sm text-gray-500"
+            />
+            {imagePreview && (
+              <div className="relative w-24 h-24 mt-2 rounded-lg overflow-hidden">
+                <Image src={imagePreview} alt="Preview" fill className="object-cover" sizes="96px" />
+              </div>
+            )}
+            <p className="text-xs text-gray-400 mt-1">EXIF data (including GPS) is automatically stripped on upload.</p>
+          </div>
+
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.is_featured}
+              onChange={e => setForm(prev => ({ ...prev, is_featured: e.target.checked }))}
+              className="w-4 h-4"
+            />
+            <span className="text-sm text-gray-600">Feature on home page</span>
+          </label>
+
+          <button
+            onClick={handleSubmit}
+            disabled={uploading}
+            className="bg-accent text-white px-6 py-2.5 rounded-full text-sm hover:bg-opacity-90 transition-all disabled:opacity-60"
+          >
+            {uploading ? 'Saving...' : 'Save product'}
+          </button>
+        </div>
+      )}
+
+      {/* Products list */}
+      {loading ? (
+        <p className="text-gray-400 text-sm">Loading...</p>
+      ) : products.length === 0 ? (
+        <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center text-gray-400 text-sm">
+          No products yet. Add your first one above.
+        </div>
+      ) : (
+        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+              <tr>
+                <th className="px-6 py-3 text-left">Product</th>
+                <th className="px-6 py-3 text-left">Price</th>
+                <th className="px-6 py-3 text-left">Category</th>
+                <th className="px-6 py-3 text-left">Status</th>
+                <th className="px-6 py-3 text-left">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {products.map(product => (
+                <tr key={product.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-accent-light flex-shrink-0">
+                        {product.images[0] && (
+                          <Image src={product.images[0]} alt={product.name} fill className="object-cover" sizes="40px" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium">{product.name}</p>
+                        {product.is_featured && (
+                          <span className="text-xs text-accent">Featured</span>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">₹{product.price.toLocaleString('en-IN')}</td>
+                  <td className="px-6 py-4 capitalize">{product.category}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      product.is_available ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {product.is_available ? 'Available' : 'Sold out'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => toggleAvailability(product.id, product.is_available)}
+                        className="text-xs text-blue-600 hover:underline"
+                      >
+                        {product.is_available ? 'Mark sold out' : 'Mark available'}
+                      </button>
+                      <button
+                        onClick={() => deleteProduct(product.id)}
+                        className="text-xs text-red-500 hover:underline"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+---
+
+**Admin orders page**
+
+Create `src/app/admin/orders/page.tsx`:
+
+```typescript
+'use client'
+
+import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+
+type Order = {
+  id: string
+  buyer_name: string
+  buyer_email: string
+  buyer_phone: string
+  shipping_address: any
+  items: any[]
+  total_amount: number
+  status: string
+  created_at: string
+  razorpay_payment_id: string
+}
+
+const statusOptions = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled']
+
+const statusColors: Record<string, string> = {
+  pending: 'bg-yellow-100 text-yellow-800',
+  confirmed: 'bg-blue-100 text-blue-800',
+  shipped: 'bg-purple-100 text-purple-800',
+  delivered: 'bg-green-100 text-green-800',
+  cancelled: 'bg-red-100 text-red-800',
+}
+
+export default function AdminOrdersPage() {
+  const [orders, setOrders] = useState<Order[]>([])
+  const [loading, setLoading] = useState(true)
+  const [expanded, setExpanded] = useState<string | null>(null)
+  const supabase = createClient()
+
+  useEffect(() => { fetchOrders() }, [])
+
+  async function fetchOrders() {
+    const { data } = await supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false })
+    setOrders(data || [])
+    setLoading(false)
+  }
+
+  async function updateStatus(id: string, status: string) {
+    await supabase.from('orders').update({ status }).eq('id', id)
+    fetchOrders()
+  }
+
+  return (
+    <div>
+      <h1 className="text-2xl font-semibold mb-8">Orders</h1>
+
+      {loading ? (
+        <p className="text-gray-400 text-sm">Loading...</p>
+      ) : orders.length === 0 ? (
+        <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center text-gray-400 text-sm">
+          No orders yet.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {orders.map(order => (
+            <div key={order.id} className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+
+              {/* Order header */}
+              <div
+                className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors"
+                onClick={() => setExpanded(expanded === order.id ? null : order.id)}
+              >
+                <div className="flex items-center gap-4">
+                  <div>
+                    <p className="font-medium text-sm">{order.buyer_name}</p>
+                    <p className="text-xs text-gray-400">
+                      {new Date(order.created_at).toLocaleDateString('en-IN', {
+                        day: 'numeric', month: 'short', year: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${statusColors[order.status]}`}>
+                    {order.status}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="font-semibold text-sm">
+                    ₹{order.total_amount.toLocaleString('en-IN')}
+                  </span>
+                  <span className="text-gray-400 text-xs">{expanded === order.id ? '▲' : '▼'}</span>
+                </div>
+              </div>
+
+              {/* Expanded order details */}
+              {expanded === order.id && (
+                <div className="px-6 pb-6 border-t border-gray-100 pt-4 space-y-4">
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                      <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Buyer details</p>
+                      <p className="text-sm">{order.buyer_name}</p>
+                      <p className="text-sm text-gray-500">{order.buyer_email}</p>
+                      <p className="text-sm text-gray-500">{order.buyer_phone}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Shipping address</p>
+                      <p className="text-sm">{order.shipping_address.line1}</p>
+                      {order.shipping_address.line2 && (
+                        <p className="text-sm text-gray-500">{order.shipping_address.line2}</p>
+                      )}
+                      <p className="text-sm text-gray-500">
+                        {order.shipping_address.city}, {order.shipping_address.state} — {order.shipping_address.pincode}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Items ordered</p>
+                    {order.items.map((item: any, i: number) => (
+                      <div key={i} className="flex justify-between text-sm py-1 border-b border-gray-50 last:border-0">
+                        <span>{item.name} × {item.quantity}</span>
+                        <span>₹{(item.price * item.quantity).toLocaleString('en-IN')}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Update status</p>
+                    <div className="flex flex-wrap gap-2">
+                      {statusOptions.map(s => (
+                        <button
+                          key={s}
+                          onClick={() => updateStatus(order.id, s)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium capitalize transition-all border ${
+                            order.status === s
+                              ? statusColors[s] + ' border-transparent'
+                              : 'border-gray-200 text-gray-500 hover:border-gray-400'
+                          }`}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {order.razorpay_payment_id && (
+                    <p className="text-xs text-gray-400">
+                      Payment ID: {order.razorpay_payment_id}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+---
+
+**Admin enquiries page**
+
+Create `src/app/admin/enquiries/page.tsx`:
+
+```typescript
+'use client'
+
+import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+
+type Enquiry = {
+  id: string
+  name: string
+  email: string
+  message: string
+  is_custom_order: boolean
+  created_at: string
+}
+
+export default function AdminEnquiriesPage() {
+  const [enquiries, setEnquiries] = useState<Enquiry[]>([])
+  const [loading, setLoading] = useState(true)
+  const supabase = createClient()
+
+  useEffect(() => {
+    async function fetchEnquiries() {
+      const { data } = await supabase
+        .from('enquiries')
+        .select('*')
+        .order('created_at', { ascending: false })
+      setEnquiries(data || [])
+      setLoading(false)
+    }
+    fetchEnquiries()
+  }, [])
+
+  return (
+    <div>
+      <h1 className="text-2xl font-semibold mb-8">Enquiries</h1>
+
+      {loading ? (
+        <p className="text-gray-400 text-sm">Loading...</p>
+      ) : enquiries.length === 0 ? (
+        <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center text-gray-400 text-sm">
+          No enquiries yet.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {enquiries.map(enquiry => (
+            <div key={enquiry.id} className="bg-white border border-gray-200 rounded-2xl p-6">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <p className="font-medium text-sm">{enquiry.name}</p>
+                  
+                    href={`mailto:${enquiry.email}`}
+                    className="text-xs text-accent hover:underline"
+                  >
+                    {enquiry.email}
+                  </a>
+                </div>
+                <div className="flex items-center gap-2">
+                  {enquiry.is_custom_order && (
+                    <span className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full font-medium">
+                      Custom order
+                    </span>
+                  )}
+                  <span className="text-xs text-gray-400">
+                    {new Date(enquiry.created_at).toLocaleDateString('en-IN', {
+                      day: 'numeric', month: 'short', year: 'numeric'
+                    })}
+                  </span>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600 leading-relaxed">{enquiry.message}</p>
+              <div className="mt-3">
+                
+                  href={`mailto:${enquiry.email}?subject=Re: Your enquiry`}
+                  className="text-xs text-accent hover:underline"
+                >
+                  Reply via email →
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+---
+
+**What you now have — complete**
+
+Every single page of the entire website is built. Here's the full inventory:
+
+Public pages — home, shop, product detail, cart, checkout, order success, contact, privacy, terms, shipping.
+
+Admin pages — login with magic link, dashboard with stats and recent orders, product manager with image upload and EXIF strip, order manager with expandable details and status updates, enquiries viewer with email reply link.
+
+Security — honeypot on both public forms, rate limiting on all API routes, webhook signature verification, server-side price verification, input sanitisation everywhere, CSP and security headers on every response via middleware, admin route protected at middleware level before any page renders, magic link auth with no password to phish.
+
+---
+
+**What's left before launch**
+
+Three things remain and none of them are code. First, run `npm run build` locally and fix any TypeScript errors. Second, deploy to Vercel by pushing to GitHub and connecting the repo in the Vercel dashboard — add all your environment variables in their dashboard under project settings. Third, point your domain to Cloudflare, set up the DNS record pointing to Vercel, and enable the proxy so your origin IP is masked.
+
+Then run Burp Suite against your staging URL before going live. That's your pre-launch audit.
+
+The site is done.
