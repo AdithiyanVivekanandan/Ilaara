@@ -64,11 +64,11 @@ export default function ShopPage() {
       </header>
 
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-20 animate-pulse">
-          {[1, 2, 3, 4, 5, 6].map(i => (
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-6 md:gap-x-12 gap-y-12 md:gap-y-20 animate-pulse">
+          {[1, 2, 3, 4].map(i => (
             <div key={i} className="space-y-4">
-              <div className="aspect-[4/5] bg-gray-200 rounded-sm" />
-              <div className="h-4 bg-gray-200 w-2/3" />
+              <div className="aspect-[4/5] bg-gray-100 rounded-sm" />
+              <div className="h-4 bg-gray-100 w-2/3" />
             </div>
           ))}
         </div>
@@ -78,7 +78,7 @@ export default function ShopPage() {
           <button onClick={() => setCategory(null)} className="text-[10px] uppercase tracking-widest text-brand-red">View all items</button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-20">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-6 md:gap-x-12 gap-y-12 md:gap-y-20">
           {products.map(product => (
             <ProductCard key={product.id} product={product} />
           ))}

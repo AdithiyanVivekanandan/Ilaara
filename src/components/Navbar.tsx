@@ -7,10 +7,10 @@ export default function Navbar() {
   const pathname = usePathname()
 
   return (
-    <nav className="fixed top-0 left-0 w-full z-[100] py-8 px-12 md:px-24 flex justify-between items-center bg-transparent transition-all duration-700 pointer-events-none">
+    <nav className="fixed top-0 left-0 w-full z-[100] py-6 md:py-8 px-6 md:px-24 flex justify-between items-center bg-transparent transition-all duration-700 pointer-events-none">
       <Link 
         href="/" 
-        className="spaced-serif text-brand-red text-xl md:text-2xl font-bold tracking-[0.5em] hover:opacity-100 transition-opacity pointer-events-auto"
+        className="spaced-serif text-brand-red text-lg md:text-2xl font-bold tracking-[0.3em] md:tracking-[0.5em] hover:opacity-100 transition-opacity pointer-events-auto"
       >
         ILAARA
       </Link>

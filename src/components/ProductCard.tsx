@@ -42,16 +42,16 @@ export default function ProductCard({ product }: { product: Product }) {
         )}
       </div>
 
-      <div className="flex justify-between items-start pt-2">
+      <div className="flex justify-between items-start pt-2 gap-2">
         <div className="space-y-1">
-          <h3 className="text-sm uppercase tracking-wider text-brand-dark group-hover:text-brand-red transition-colors">
+          <h3 className="text-[10px] md:text-sm uppercase tracking-wider text-brand-dark group-hover:text-brand-red transition-colors line-clamp-1">
             {product.name}
           </h3>
-          <p className="text-[10px] uppercase tracking-widest text-gray-400">
+          <p className="text-[8px] md:text-[10px] uppercase tracking-widest text-gray-400">
             {product.category}
           </p>
         </div>
-        <p className="text-sm font-light">
+        <p className="text-[10px] md:text-sm font-light whitespace-nowrap">
           ₹{product.price.toLocaleString('en-IN')}
         </p>
       </div>

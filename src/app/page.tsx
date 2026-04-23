@@ -99,21 +99,21 @@ export default function Home() {
       <div className="relative z-10 w-full h-screen">
         
         {/* SCENE 1: INITIAL HERO (Matches Mockup) */}
-        <section className="hero-scene h-full flex flex-col items-center justify-center px-8 md:px-16">
-          <div className="hero-content text-center space-y-12">
-            <div className="space-y-6">
-              <h1 className="spaced-serif text-6xl md:text-[14rem] text-brand-red tracking-[0.5em] leading-none transition-all">
+        <section className="hero-scene h-full flex flex-col items-center justify-center px-6 md:px-16">
+          <div className="hero-content text-center space-y-8 md:space-y-12">
+            <div className="space-y-4 md:space-y-6">
+              <h1 className="spaced-serif text-5xl md:text-8xl lg:text-[14rem] text-brand-red tracking-[0.3em] md:tracking-[0.5em] leading-none transition-all">
                 ILAARA
               </h1>
-              <p className="text-[10px] md:text-sm uppercase tracking-[1em] text-gray-400 font-bold opacity-60">
+              <p className="text-[8px] md:text-sm uppercase tracking-[0.6em] md:tracking-[1em] text-gray-400 font-bold opacity-60">
                 A stitch starts here
               </p>
             </div>
             
-            <div className="pt-24 md:pt-48">
+            <div className="pt-16 md:pt-48">
               <Link 
                 href="/shop" 
-                className="px-20 py-8 bg-brand-red text-brand-cream text-[12px] uppercase tracking-[0.6em] font-black rounded-full hover:bg-brand-dark hover:scale-105 transition-all shadow-2xl active:scale-95"
+                className="px-12 md:px-20 py-6 md:py-8 bg-brand-red text-brand-cream text-[10px] md:text-[12px] uppercase tracking-[0.4em] md:tracking-[0.6em] font-black rounded-full hover:bg-brand-dark hover:scale-105 transition-all shadow-2xl active:scale-95"
               >
                 Explore Collection
               </Link>
@@ -122,21 +122,21 @@ export default function Home() {
 
           {/* Scroll Visual Indicator */}
           <div className="absolute bottom-12 flex flex-col items-center gap-4 opacity-20">
-            <div className="w-[1px] h-12 bg-brand-red animate-scroll-line" />
-            <span className="text-[8px] uppercase tracking-widest text-brand-red">Scroll</span>
+            <div className="w-[1px] h-10 md:h-12 bg-brand-red animate-scroll-line" />
+            <span className="text-[7px] uppercase tracking-widest text-brand-red">Scroll</span>
           </div>
         </section>
 
         {/* SCENE 2: CHAPTER 1 - CROCHET */}
-        <section className="chapter-1 absolute inset-0 opacity-0 flex flex-col items-center justify-center px-8 md:px-32">
-          <div className="w-full max-w-7xl grid grid-cols-1 md:grid-cols-2 gap-24 items-center">
-            <div className="relative aspect-square shadow-2xl rounded-sm p-12 bg-white overflow-hidden group">
-              <Image src="/crochet.png" alt="Handmade Crochet" fill sizes="50vw" className="object-contain transition-transform duration-700 group-hover:scale-110" priority />
+        <section className="chapter-1 absolute inset-0 opacity-0 flex flex-col items-center justify-center px-6 md:px-32">
+          <div className="w-full max-w-7xl grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-24 items-center">
+            <div className="relative aspect-square shadow-2xl rounded-sm p-8 md:p-12 bg-white overflow-hidden group">
+              <Image src="/crochet.png" alt="Handmade Crochet" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain transition-transform duration-700 group-hover:scale-110" priority />
             </div>
-            <div className="space-y-10">
-              <span className="text-[10px] uppercase tracking-[0.6em] text-brand-red font-black">Story 01</span>
-              <h3 className="text-6xl md:text-9xl font-light italic font-serif leading-none tracking-tight text-brand-dark">The <br /> Texture.</h3>
-              <p className="text-2xl text-gray-400 font-light leading-relaxed max-w-sm">
+            <div className="space-y-6 md:space-y-10">
+              <span className="text-[8px] md:text-[10px] uppercase tracking-[0.6em] text-brand-red font-black">Story 01</span>
+              <h3 className="text-4xl md:text-9xl font-light italic font-serif leading-none tracking-tight text-brand-dark">The <br /> Texture.</h3>
+              <p className="text-lg md:text-2xl text-gray-400 font-light leading-relaxed max-w-sm">
                 Woven from quiet hours. Each piece carries the weight of slow time.
               </p>
             </div>
@@ -144,15 +144,15 @@ export default function Home() {
         </section>
 
         {/* SCENE 3: CHAPTER 2 - POLAROID */}
-        <section className="chapter-2 absolute inset-0 opacity-0 flex flex-col items-center justify-center px-8 md:px-32">
-          <div className="w-full max-w-7xl grid grid-cols-1 md:grid-cols-2 gap-24 items-center">
-            <div className="md:order-2 relative aspect-[4/3] shadow-2xl rounded-sm p-12 bg-white overflow-hidden group">
-              <Image src="/polaroid.png" alt="Grainy Memories" fill sizes="50vw" className="object-contain transition-transform duration-700 group-hover:scale-110" />
+        <section className="chapter-2 absolute inset-0 opacity-0 flex flex-col items-center justify-center px-6 md:px-32">
+          <div className="w-full max-w-7xl grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-24 items-center">
+            <div className="md:order-2 relative aspect-[4/3] shadow-2xl rounded-sm p-8 md:p-12 bg-white overflow-hidden group">
+              <Image src="/polaroid.png" alt="Grainy Memories" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain transition-transform duration-700 group-hover:scale-110" />
             </div>
-            <div className="md:order-1 space-y-10">
-              <span className="text-[10px] uppercase tracking-[0.6em] text-brand-red font-black">Story 02</span>
-              <h3 className="text-6xl md:text-9xl font-light italic font-serif leading-none tracking-tight text-brand-dark">The <br /> Moment.</h3>
-              <p className="text-2xl text-gray-400 font-light leading-relaxed max-w-sm">
+            <div className="md:order-1 space-y-6 md:space-y-10">
+              <span className="text-[8px] md:text-[10px] uppercase tracking-[0.6em] text-brand-red font-black">Story 02</span>
+              <h3 className="text-4xl md:text-9xl font-light italic font-serif leading-none tracking-tight text-brand-dark">The <br /> Moment.</h3>
+              <p className="text-lg md:text-2xl text-gray-400 font-light leading-relaxed max-w-sm">
                 Capturing light that refuses to be duplicated. Grain and memory combined.
               </p>
             </div>
@@ -160,14 +160,14 @@ export default function Home() {
         </section>
 
         {/* SCENE 4: FINAL CTA */}
-        <section className="cta-scene absolute inset-0 opacity-0 flex flex-col items-center justify-center">
-          <div className="text-center space-y-16">
-            <h2 className="text-5xl md:text-9xl font-light italic font-serif text-brand-dark opacity-10 tracking-tighter leading-none">
+        <section className="cta-scene absolute inset-0 opacity-0 flex flex-col items-center justify-center px-6">
+          <div className="text-center space-y-8 md:space-y-16">
+            <h2 className="text-4xl md:text-9xl font-light italic font-serif text-brand-dark opacity-10 tracking-tighter leading-none">
               Honest craft, <br /> slowly made.
             </h2>
             <Link 
               href="/shop" 
-              className="inline-block px-20 py-8 bg-brand-red text-brand-cream text-[11px] uppercase tracking-[0.6em] font-black rounded-full hover:bg-brand-dark transition-all scale-110"
+              className="inline-block px-12 md:px-20 py-6 md:py-8 bg-brand-red text-brand-cream text-[10px] md:text-[11px] uppercase tracking-[0.6em] font-black rounded-full hover:bg-brand-dark transition-all scale-105 md:scale-110"
             >
               Enter the Shop
             </Link>

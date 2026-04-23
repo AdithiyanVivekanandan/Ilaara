@@ -38,29 +38,29 @@ export default function ContactPage() {
   }
 
   return (
-    <main className="min-h-screen bg-brand-cream pt-32 px-8 md:px-16 pb-24">
+    <main className="min-h-screen bg-brand-cream pt-24 md:pt-32 px-6 md:px-16 pb-24">
       <Navbar />
       
-      <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-24 items-start">
-        <section className="space-y-12">
+      <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-16 md:gap-24 items-start">
+        <section className="space-y-10 md:space-y-12">
           <header className="space-y-4">
             <h1 className="text-5xl md:text-7xl font-light text-brand-red italic font-serif">Say Hello.</h1>
             <p className="text-[10px] uppercase tracking-[0.4em] text-gray-400">Collaborations & Inquiries</p>
           </header>
 
           <div className="space-y-8">
-            <p className="text-lg text-gray-600 leading-relaxed">
+            <p className="text-base md:text-lg text-gray-600 leading-relaxed">
               Whether you're looking for a custom crochet piece, have questions about a polaroid print, or just want to share a story — we're listening.
             </p>
             
             <div className="space-y-2">
               <p className="text-[10px] uppercase tracking-widest text-gray-400">Reach us via email</p>
-              <a href="mailto:hello@ilaara.com" className="text-lg hover:text-brand-red transition-colors">hello@ilaara.com</a>
+              <a href="mailto:ilaarabyhm@gmail.com" className="text-base md:text-lg hover:text-brand-red transition-colors border-b border-brand-red/10 pb-1">ilaarabyhm@gmail.com</a>
             </div>
 
             <div className="space-y-2">
               <p className="text-[10px] uppercase tracking-widest text-gray-400">Instant Message</p>
-              <a href="https://wa.me/91XXXXXXXXXX" className="text-lg hover:text-brand-red transition-colors">WhatsApp →</a>
+              <a href="https://wa.me/917530038775" target="_blank" rel="noopener noreferrer" className="text-base md:text-lg hover:text-brand-red transition-colors border-b border-brand-red/10 pb-1">WhatsApp →</a>
             </div>
           </div>
         </section>
