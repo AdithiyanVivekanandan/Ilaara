@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { rateLimit, getClientIP, sanitizeText, validateEmail, validatePhone, validatePincode, isBot } from '@/lib/security'
+import { rateLimit, getClientIP, sanitizeText, validateEmail, validatePhone, validatePincode, isBot, logSecurityEvent } from '@/lib/security'
 import { NextResponse } from 'next/server'
 import Razorpay from 'razorpay'
 
@@ -13,6 +13,7 @@ export async function POST(request: Request) {
 
   // Strict rate limit on checkout — max 5 per minute per IP
   if (!rateLimit(ip, 5, 60000)) {
+    await logSecurityEvent('rate_limit', { ip, path: '/api/checkout' })
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
   }
 
@@ -20,6 +21,7 @@ export async function POST(request: Request) {
 
   // Honeypot check
   if (isBot(body.website || '')) {
+    await logSecurityEvent('honeypot_hit', { ip, path: '/api/checkout', data: { body } })
     // Return 200 to not tip off the bot but don't process
     return NextResponse.json({ success: true })
   }

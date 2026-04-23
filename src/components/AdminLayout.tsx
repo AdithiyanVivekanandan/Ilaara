@@ -9,6 +9,7 @@ function Sidebar({ activeTab }: { activeTab: string }) {
     { label: 'Inventory', href: '/admin/products', id: 'products' },
     { label: 'Activity', href: '/admin/orders', id: 'orders' },
     { label: 'Messages', href: '/admin/enquiries', id: 'enquiries' },
+    { label: 'Shield', href: '/admin/security', id: 'security' },
   ]
 
   return (
