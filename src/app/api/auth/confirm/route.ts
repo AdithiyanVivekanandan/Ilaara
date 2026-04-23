@@ -11,20 +11,25 @@ export async function GET(request: NextRequest) {
   if (token_hash && type) {
     const supabase = await createClient()
 
-    const { error } = await supabase.auth.verifyOtp({
+    // 1. Verify the OTP
+    const { data, error } = await supabase.auth.verifyOtp({
       type,
       token_hash,
     })
     
-    if (!error) {
-      console.log(`[AuthConfirm] Successfully verified magic link. Redirecting to ${next}`)
-      return NextResponse.redirect(new URL(next, request.url))
+    if (!error && data.session) {
+      console.log(`[AuthConfirm] Session established for: ${data.user?.email}`)
+      
+      // 2. Clear out any previous "error" params and go to the dashboard
+      const response = NextResponse.redirect(new URL(next, request.url))
+      
+      // Force cookies to be sent immediately
+      return response
     } else {
-      console.error(`[AuthConfirm] Verification error: ${error.message}`)
+      console.error(`[AuthConfirm] Verification failed: ${error?.message || 'No session created'}`)
     }
   }
 
-  console.warn(`[AuthConfirm] Failed verification or missing parameters. Redirecting to login.`)
-  // return the user to an error page with some instructions
-  return NextResponse.redirect(new URL('/admin/login?error=auth-failed', request.url))
+  console.warn(`[AuthConfirm] Auth path failed. Redirecting to login.`)
+  return NextResponse.redirect(new URL('/admin/login?error=confirmation-failed', request.url))
 }
