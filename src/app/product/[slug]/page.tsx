@@ -13,6 +13,7 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true)
   const [activeImage, setActiveImage] = useState(0)
   const [adding, setAdding] = useState(false)
+  const [quantity, setQuantity] = useState(1)
   
   const supabase = createClient()
   const { addToCart } = useCart()
@@ -38,7 +39,7 @@ export default function ProductDetailPage() {
       id: product.id,
       name: product.name,
       price: product.price,
-      quantity: 1,
+      quantity: quantity,
       image: product.images?.[0]
     })
     setTimeout(() => setAdding(false), 1000)
@@ -68,6 +69,12 @@ export default function ProductDetailPage() {
       </div>
     </div>
   )
+
+  const features = [
+    { icon: '🧶', label: 'Artisanal Craft', detail: 'Hand-woven with slow intention' },
+    { icon: '🌿', label: 'Pure Material', detail: 'Sustainably sourced premium threads' },
+    { icon: '✨', label: 'One of One', detail: 'Every piece has a unique character' },
+  ]
 
   return (
     <main className="min-h-screen bg-brand-cream pt-32 px-8 md:px-16 pb-24">
@@ -129,25 +136,46 @@ export default function ProductDetailPage() {
             </p>
           </div>
 
-          <div className="pt-8 space-y-6">
+          {/* Key Features Section */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 py-8 border-y border-gray-50">
+            {features.map((f, i) => (
+              <div key={i} className="space-y-2">
+                <span className="text-xl">{f.icon}</span>
+                <p className="text-[10px] uppercase tracking-widest font-black text-brand-dark">{f.label}</p>
+                <p className="text-[9px] text-gray-400 leading-tight uppercase tracking-tighter">{f.detail}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="pt-4 space-y-8">
             {product.is_available ? (
-              <button
-                onClick={handleAddToCart}
-                disabled={adding}
-                className={`w-full py-5 rounded-full text-xs uppercase tracking-[0.3em] font-bold transition-all duration-500 shadow-lg ${
-                  adding 
-                  ? 'bg-green-600 text-white scale-[0.98]' 
-                  : 'bg-brand-red text-brand-cream hover:bg-brand-dark'
-                }`}
-              >
-                {adding ? 'Added to Cart' : 'Add to Collection'}
-              </button>
+              <div className="flex gap-4">
+                <div className="flex items-center border border-gray-100 rounded-full overflow-hidden h-16">
+                  <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="px-6 h-full hover:bg-brand-red hover:text-white transition-colors">−</button>
+                  <span className="px-6 font-bold text-sm w-16 text-center">{quantity}</span>
+                  <button onClick={() => setQuantity(quantity + 1)} className="px-6 h-full hover:bg-brand-red hover:text-white transition-colors">+</button>
+                </div>
+                <button
+                  onClick={handleAddToCart}
+                  disabled={adding}
+                  className={`flex-grow py-5 rounded-full text-xs uppercase tracking-[0.3em] font-bold transition-all duration-500 shadow-lg ${
+                    adding 
+                    ? 'bg-green-600 text-white scale-[0.98]' 
+                    : 'bg-brand-red text-brand-cream hover:bg-brand-dark'
+                  }`}
+                >
+                  {adding ? 'Added to Cart' : 'Add to Collection'}
+                </button>
+              </div>
             ) : (
               <button disabled className="w-full py-5 border-2 border-gray-200 text-gray-300 rounded-full text-xs uppercase tracking-[0.3em] cursor-not-allowed">
                 Waitlist Only
               </button>
             )}
             
+            <p className="text-[10px] text-center text-gray-400 uppercase tracking-widest italic">
+              Every Ilaara piece is uniquely numbered.
+            </p>
             <p className="text-[10px] text-center text-gray-400 uppercase tracking-widest">
               Standard delivery in 5-7 business days.
             </p>

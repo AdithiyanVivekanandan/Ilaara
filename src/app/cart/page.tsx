@@ -6,7 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 
 export default function CartPage() {
-  const { items, removeFromCart, totalPrice, totalItems } = useCart()
+  const { items, removeFromCart, updateQuantity, clearCart, totalPrice, totalItems } = useCart()
 
   return (
     <main className="min-h-screen bg-brand-cream pt-32 px-8 md:px-16 pb-24">
@@ -17,9 +17,19 @@ export default function CartPage() {
           <h1 className="text-5xl md:text-7xl font-light text-brand-red italic font-serif">
             Your Collection
           </h1>
-          <p className="text-[10px] uppercase tracking-[0.4em] text-gray-400">
-            {totalItems} {totalItems === 1 ? 'Piece' : 'Pieces'} Selected
-          </p>
+          <div className="flex justify-center items-center gap-4">
+            <p className="text-[10px] uppercase tracking-[0.4em] text-gray-400">
+              {totalItems} {totalItems === 1 ? 'Piece' : 'Pieces'} Selected
+            </p>
+            {items.length > 0 && (
+              <button 
+                onClick={clearCart}
+                className="text-[8px] uppercase tracking-widest text-brand-red hover:underline font-bold"
+              >
+                Clear All
+              </button>
+            )}
+          </div>
         </header>
 
         {items.length === 0 ? (
@@ -41,17 +51,35 @@ export default function CartPage() {
                   
                   <div className="flex-grow space-y-1">
                     <h3 className="text-sm uppercase tracking-wider text-brand-dark">{item.name}</h3>
-                    <p className="text-xs text-gray-400">Quantity: {item.quantity}</p>
-                    <button 
-                      onClick={() => removeFromCart(item.id)}
-                      className="text-[9px] uppercase tracking-widest text-brand-red font-bold hover:underline"
-                    >
-                      Remove
-                    </button>
+                    <div className="flex items-center gap-4 py-2">
+                      <div className="flex items-center border border-gray-100 rounded-full overflow-hidden">
+                        <button 
+                          onClick={() => updateQuantity(item.id, -1)}
+                          className="px-3 py-1 hover:bg-brand-red hover:text-brand-cream transition-colors text-xs font-bold"
+                        >
+                          −
+                        </button>
+                        <span className="px-3 text-[10px] font-bold border-x border-gray-50 min-w-[30px] text-center">
+                          {item.quantity}
+                        </span>
+                        <button 
+                          onClick={() => updateQuantity(item.id, 1)}
+                          className="px-3 py-1 hover:bg-brand-red hover:text-brand-cream transition-colors text-xs font-bold"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <button 
+                        onClick={() => removeFromCart(item.id)}
+                        className="text-[9px] uppercase tracking-widest text-gray-300 hover:text-brand-red font-bold transition-colors"
+                      >
+                        Discard
+                      </button>
+                    </div>
                   </div>
                   
                   <div className="text-right">
-                    <p className="text-sm">₹{(item.price * item.quantity).toLocaleString('en-IN')}</p>
+                    <p className="text-sm font-light">₹{(item.price * item.quantity).toLocaleString('en-IN')}</p>
                   </div>
                 </div>
               ))}

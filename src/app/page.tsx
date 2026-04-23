@@ -68,6 +68,10 @@ export default function Home() {
         '-=0.5'
       )
 
+      // Fluid Background Transitions
+      mainTl.to('.aurora-1', { scale: 1.2, x: 100, y: 50, opacity: 0.1, duration: 3 }, 0)
+      mainTl.to('.aurora-2', { scale: 1.5, x: -100, y: -50, opacity: 0.1, duration: 3 }, 0)
+
       // Final CTA
       mainTl.to('.chapter-2', { opacity: 0, scale: 0.9, duration: 1 }, '+=1')
       mainTl.fromTo('.cta-scene', 
@@ -75,6 +79,7 @@ export default function Home() {
         { opacity: 1, y: 0, duration: 1.2 }, 
         '-=0.5'
       )
+      mainTl.to('.aurora-1', { opacity: 0.15, scale: 2, duration: 2 }, '-=1')
 
     }, containerRef)
 
@@ -86,8 +91,11 @@ export default function Home() {
     <main className="relative bg-brand-cream min-h-screen select-none overflow-hidden" ref={containerRef}>
       <Navbar />
 
-      {/* Floating 2D Hand-drawn Art (Persistent and Parallax) */}
       <div className="fixed inset-0 pointer-events-none z-0">
+        {/* Dynamic Background Blobs */}
+        <div className="absolute top-[10%] left-[-5%] w-[80vw] h-[80vw] bg-brand-red/5 rounded-full blur-[120px] aurora-1 transition-all duration-1000" />
+        <div className="absolute bottom-[-10%] right-[-5%] w-[60vw] h-[60vw] bg-brand-red/5 rounded-full blur-[120px] aurora-2 transition-all duration-1000" />
+        
         <div className="float-art-left absolute top-1/4 left-[5%] w-64 md:w-[28rem] aspect-square opacity-[0.07] grayscale">
           <Image src="/crochet.png" alt="" fill className="object-contain" loading="eager" />
         </div>

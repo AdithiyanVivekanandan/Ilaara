@@ -1,13 +1,21 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 export default function Navbar() {
   const pathname = usePathname()
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20)
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   return (
-    <nav className="fixed top-0 left-0 w-full z-[100] py-6 md:py-8 px-6 md:px-24 flex justify-between items-center bg-transparent transition-all duration-700 pointer-events-none">
+    <nav className={`fixed top-0 left-0 w-full z-[100] py-6 md:py-8 px-6 md:px-24 flex justify-between items-center transition-all duration-700 ${scrolled ? 'glass-nav !py-4' : 'bg-transparent'}`}>
       <Link 
         href="/" 
         className="spaced-serif text-brand-red text-lg md:text-2xl font-bold tracking-[0.3em] md:tracking-[0.5em] hover:opacity-100 transition-opacity pointer-events-auto"

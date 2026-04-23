@@ -65,11 +65,50 @@
   perspective: 2000px;
 }
 
-.will-change-transform {
-  will-change: transform, opacity;
+/* Glassmorphism & Fluidity */
+.glass-nav {
+  backdrop-filter: blur(12px) saturate(180%);
+  background-color: rgba(250, 249, 246, 0.7);
+  border-bottom: 1px solid rgba(139, 0, 0, 0.03);
 }
 
-/* Smooth color transitions for background sweeps */
+.aurora-blob {
+  position: fixed;
+  width: 60vh;
+  height: 60vh;
+  border-radius: 50%;
+  background: var(--color-brand-red);
+  filter: blur(120px);
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 0;
+  will-change: transform;
+}
+
+/* Micro-animations and Global Transitions */
+.reveal-up {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
 main {
   transition: background-color 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow-x: hidden;
+}
+
+.product-card {
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.product-card:hover {
+  transform: translateY(-8px);
+}
+
+.btn-fluid {
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-fluid:hover {
+  letter-spacing: 0.8em;
+  background-color: var(--color-brand-dark);
 }
