@@ -19,7 +19,6 @@ export const metadata: Metadata = {
 };
 
 import { CartProvider } from "@/components/CartProvider";
-import ArtStreaks from "@/components/ArtStreaks";
 
 export default function RootLayout({
   children,
@@ -29,11 +28,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} ${cormorant.variable} antialiased selection:bg-brand-red selection:text-brand-cream`}>
-        {/* Aesthetic Background Accents */}
-        <div className="aurora-blob top-[-10%] left-[-10%]" />
-        <div className="aurora-blob bottom-[-10%] right-[-10%]" />
-        <ArtStreaks />
-        
         <CartProvider>
           {children}
         </CartProvider>
