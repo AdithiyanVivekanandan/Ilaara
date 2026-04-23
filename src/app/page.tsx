@@ -102,7 +102,7 @@ export default function Home() {
         <section className="hero-scene h-full flex flex-col items-center justify-center px-8 md:px-16">
           <div className="hero-content text-center space-y-12">
             <div className="space-y-6">
-              <h1 className="spaced-serif text-6xl md:text-[14rem] text-brand-red font-bold tracking-[0.5em] leading-none transition-all">
+              <h1 className="spaced-serif text-6xl md:text-[14rem] text-brand-red tracking-[0.5em] leading-none transition-all">
                 ILAARA
               </h1>
               <p className="text-[10px] md:text-sm uppercase tracking-[1em] text-gray-400 font-bold opacity-60">

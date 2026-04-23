@@ -42,7 +42,7 @@ export default async function proxy(request: NextRequest) {
     }
     
     // Authorized check (Strict email matching)
-    if (user.email !== process.env.ADMIN_EMAIL) {
+    if (user.email?.toLowerCase().trim() !== process.env.ADMIN_EMAIL?.toLowerCase().trim()) {
       // Redirect to unauthorized page instead of home for better UX/Debugging
       return NextResponse.redirect(new URL('/admin/unauthorized', request.url))
     }
