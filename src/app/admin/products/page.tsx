@@ -67,7 +67,8 @@ export default function AdminProductsPage() {
     category: 'crochet',
     images: [] as string[],
     is_available: true,
-    is_featured: false
+    is_featured: false,
+    is_visible: true
   })
   const [uploading, setUploading] = useState(false)
 
@@ -136,7 +137,7 @@ export default function AdminProductsPage() {
       setEditingProduct(null)
       setFormData({
         name: '', slug: '', description: '', price: 0,
-        category: 'crochet', images: [], is_available: true, is_featured: false
+        category: 'crochet', images: [], is_available: true, is_featured: false, is_visible: true
       })
       fetchProducts()
     } else {
@@ -145,9 +146,21 @@ export default function AdminProductsPage() {
     setLoading(false)
   }
 
-  const deleteProduct = async (id: string) => {
-    if (!confirm('Are you sure?')) return
-    const { error } = await supabase.from('products').delete().eq('id', id)
+  const deleteProduct = async (product: any) => {
+    if (!confirm('This will permanently delete the piece and all its images. Continue?')) return
+    
+    // 1. Delete from Cloudinary
+    if (product.images && product.images.length > 0) {
+      for (const url of product.images) {
+        await fetch('/api/upload/delete', {
+          method: 'POST',
+          body: JSON.stringify({ imageUrl: url })
+        })
+      }
+    }
+
+    // 2. Delete from Database
+    const { error } = await supabase.from('products').delete().eq('id', product.id)
     if (!error) fetchProducts()
   }
 
@@ -162,7 +175,9 @@ export default function AdminProductsPage() {
             <p className="text-gray-400 text-[10px] uppercase tracking-[0.5em] font-medium">Collection Control • {products.length} Items Listed</p>
           </div>
           <button 
-            onClick={() => { setShowForm(true); setEditingProduct(null); }}
+            onClick={() => { setShowForm(true); setEditingProduct(null); setFormData({
+              name: '', slug: '', description: '', price: 0, category: 'crochet', images: [], is_available: true, is_featured: false, is_visible: true
+            }) }}
             className="px-10 py-4 bg-brand-red text-brand-cream text-[10px] uppercase tracking-[0.4em] font-black rounded-full hover:bg-brand-dark transition-all shadow-xl active:scale-95"
           >
             + Create New Piece
@@ -172,38 +187,49 @@ export default function AdminProductsPage() {
         {showForm && (
           <section className="bg-white p-12 rounded-sm shadow-2xl max-w-4xl border border-gray-100 relative">
             <header className="flex justify-between items-center mb-10">
-              <h3 className="text-3xl font-serif italic text-brand-dark">{editingProduct ? 'Update Piece' : 'Add New Member to Collection'}</h3>
-              <button onClick={() => setShowForm(false)} className="text-[10px] uppercase tracking-widest text-gray-300 hover:text-brand-red transition-colors">Close</button>
+              <h3 className="text-3xl font-serif italic text-brand-dark">{editingProduct ? 'Edit Narrative' : 'New Collection Member'}</h3>
+              <button onClick={() => setShowForm(false)} className="text-[10px] uppercase tracking-widest text-gray-300 hover:text-brand-red transition-colors">Dismiss</button>
             </header>
 
             <form onSubmit={handleSubmit} className="space-y-8">
               <div className="grid grid-cols-2 gap-8">
                 <div className="space-y-2">
-                  <label className="text-[9px] uppercase tracking-[0.4em] text-brand-red font-black">Display Name</label>
+                  <label className="text-[9px] uppercase tracking-[0.4em] text-brand-red font-black">Title</label>
                   <input required placeholder="eg. The Midnight Tote" className="w-full bg-transparent border-b border-gray-100 py-3 text-sm outline-none focus:border-brand-red transition-all" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[9px] uppercase tracking-[0.4em] text-brand-red font-black">URL Slug</label>
+                  <label className="text-[9px] uppercase tracking-[0.4em] text-brand-red font-black">Slug (Unique Link)</label>
                   <input required placeholder="midnight-tote" className="w-full bg-transparent border-b border-gray-100 py-3 text-sm outline-none focus:border-brand-red transition-all" value={formData.slug} onChange={e => setFormData({...formData, slug: e.target.value})} />
                 </div>
               </div>
               
               <div className="space-y-2">
-                <label className="text-[9px] uppercase tracking-[0.4em] text-brand-red font-black">The Story (Description)</label>
+                <label className="text-[9px] uppercase tracking-[0.4em] text-brand-red font-black">Story</label>
                 <textarea placeholder="Write the narrative for this piece..." rows={4} className="w-full bg-transparent border-b border-gray-100 py-3 text-sm outline-none focus:border-brand-red transition-all resize-none" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
               </div>
 
               <div className="grid grid-cols-2 gap-8">
                 <div className="space-y-2">
-                  <label className="text-[9px] uppercase tracking-[0.4em] text-brand-red font-black">Pricing (INR)</label>
+                  <label className="text-[9px] uppercase tracking-[0.4em] text-brand-red font-black">Price (INR)</label>
                   <input required type="number" className="w-full bg-transparent border-b border-gray-100 py-3 text-sm outline-none focus:border-brand-red transition-all" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[9px] uppercase tracking-[0.4em] text-brand-red font-black">Category</label>
                   <select className="w-full bg-transparent border-b border-gray-100 py-3 text-sm outline-none focus:border-brand-red transition-all appearance-none" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
-                    <option value="crochet">Crochet Crafts</option>
-                    <option value="polaroid">Polaroid Prints</option>
+                    <option value="crochet">Crochet</option>
+                    <option value="polaroid">Polaroid</option>
                   </select>
+                </div>
+              </div>
+
+              <div className="flex gap-12 items-center py-4">
+                <div className="flex items-center gap-3">
+                  <input type="checkbox" id="is_visible" checked={formData.is_visible} onChange={e => setFormData({...formData, is_visible: e.target.checked})} className="accent-brand-red w-4 h-4" />
+                  <label htmlFor="is_visible" className="text-[10px] uppercase tracking-widest text-brand-dark font-black">Show in Shop</label>
+                </div>
+                <div className="flex items-center gap-3">
+                   <input type="checkbox" id="is_featured" checked={formData.is_featured} onChange={e => setFormData({...formData, is_featured: e.target.checked})} className="accent-brand-red w-4 h-4" />
+                   <label htmlFor="is_featured" className="text-[10px] uppercase tracking-widest text-brand-dark font-black">Feature on Landing</label>
                 </div>
               </div>
               
@@ -285,7 +311,7 @@ export default function AdminProductsPage() {
                     </td>
                     <td className="px-10 py-6 text-right space-x-8">
                       <button onClick={() => { setEditingProduct(p); setFormData(p); setShowForm(true); }} className="text-[10px] uppercase tracking-[0.4em] font-black text-gray-300 hover:text-brand-red transition-colors">Edit</button>
-                      <button onClick={() => deleteProduct(p.id)} className="text-[10px] uppercase tracking-[0.4em] font-black text-gray-100 hover:text-red-600 transition-colors">Delete</button>
+                      <button onClick={() => deleteProduct(p)} className="text-[10px] uppercase tracking-[0.4em] font-black text-gray-100 hover:text-red-600 transition-colors">Delete</button>
                     </td>
                   </tr>
                 ))
