@@ -54,7 +54,7 @@ export default function AdminEnquiriesPage() {
                     </span>
                   )}
                   <p className="text-[10px] uppercase tracking-[0.2em] text-gray-300 font-bold">
-                    {new Date(enquiry.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2025' })}
+                    {new Date(enquiry.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </p>
                 </div>
               </div>
