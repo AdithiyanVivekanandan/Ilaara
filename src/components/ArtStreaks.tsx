@@ -21,7 +21,7 @@ export default function ArtStreaks() {
 
       gsap.to(streak, {
         xPercent: 100 * (i % 2 === 0 ? 1 : -1),
-        opacity: 0.1,
+        opacity: 0.3,
         duration: 20 + Math.random() * 40,
         repeat: -1,
         ease: 'none',
@@ -31,7 +31,7 @@ export default function ArtStreaks() {
   }, [])
 
   return (
-    <div ref={containerRef} className="fixed inset-0 pointer-events-none z-[1] overflow-hidden opacity-30">
+    <div ref={containerRef} className="fixed inset-0 pointer-events-none z-[1] overflow-hidden opacity-50">
       <div className="streak absolute w-full h-[1px] bg-gradient-to-r from-transparent via-brand-red to-transparent blur-[1px]" style={{ top: '15%' }} />
       <div className="streak absolute w-full h-[2px] bg-gradient-to-r from-transparent via-brand-red to-transparent blur-[2px]" style={{ top: '45%' }} />
       <div className="streak absolute w-full h-[1px] bg-gradient-to-r from-transparent via-brand-red to-transparent blur-[1px]" style={{ top: '75%' }} />

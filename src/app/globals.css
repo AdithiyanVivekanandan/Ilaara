@@ -67,19 +67,19 @@
 
 /* Glassmorphism & Fluidity */
 .glass-nav {
-  backdrop-filter: blur(12px) saturate(180%);
-  background-color: rgba(250, 249, 246, 0.7);
-  border-bottom: 1px solid rgba(139, 0, 0, 0.03);
+  backdrop-filter: blur(12px) saturate(200%);
+  background-color: rgba(250, 249, 246, 0.85);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
 }
 
 .aurora-blob {
   position: fixed;
-  width: 60vh;
-  height: 60vh;
+  width: 80vh;
+  height: 80vh;
   border-radius: 50%;
   background: var(--color-brand-red);
-  filter: blur(120px);
-  opacity: 0.03;
+  filter: blur(140px);
+  opacity: 0.08; /* Increased opacity */
   pointer-events: none;
   z-index: 0;
   will-change: transform;

@@ -15,7 +15,7 @@ export default function Navbar() {
   }, [])
 
   return (
-    <nav className={`fixed top-0 left-0 w-full z-[100] py-6 md:py-8 px-6 md:px-24 flex justify-between items-center transition-all duration-700 ${scrolled ? 'glass-nav !py-4' : 'bg-transparent'}`}>
+    <nav className={`fixed top-0 left-0 w-full z-[100] py-6 md:py-8 px-6 md:px-24 flex justify-between items-center transition-all duration-700 ${scrolled ? 'glass-nav' : 'bg-transparent'}`}>
       <Link 
         href="/" 
         className="spaced-serif text-brand-red text-lg md:text-2xl font-bold tracking-[0.3em] md:tracking-[0.5em] hover:opacity-100 transition-opacity pointer-events-auto"
