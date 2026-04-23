@@ -8,22 +8,17 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useTheme } from '@/components/ThemeProvider'
 
-/**
- * Ilaara Landing Page
- * Features a high-fidelity scrollytelling experience.
- */
 export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null)
   const { settings } = useTheme()
 
   useLayoutEffect(() => {
-    // 1. Mount Check: Prevent hydration errors by ensuring code runs on client
     if (!containerRef.current) return
 
     gsap.registerPlugin(ScrollTrigger)
 
     const ctx = gsap.context(() => {
-      // 2. Initial Animation (Fade in non-parallax elements)
+      // 2. Initial Animation
       gsap.from('.hero-content', { 
         opacity: 0, 
         y: 20, 
@@ -36,7 +31,7 @@ export default function Home() {
         scrollTrigger: {
           trigger: containerRef.current,
           start: 'top top',
-          end: '+=400%',
+          end: `+=${400 * settings.home.scrollSpeed}%`, // Dynamic scroll speed
           pin: true,
           scrub: 1,
           anticipatePin: 1,
@@ -46,50 +41,52 @@ export default function Home() {
       // Hero Elements Exit
       mainTl.to('.hero-scene', { 
         opacity: 0, 
-        y: -100, 
+        y: -100 * settings.home.parallaxIntensity, 
         duration: 1 
       })
 
-      // Parallax Art (Background hand-drawn drawings)
-      mainTl.to('.float-art-left', { x: -100, y: -50, rotate: -10, duration: 2 }, 0)
-      mainTl.to('.float-art-right', { x: 100, y: -80, rotate: 10, duration: 2 }, 0)
+      // Parallax Art
+      mainTl.to('.float-art-left', { x: -100 * settings.home.parallaxIntensity, y: -50, rotate: -10, duration: 2 }, 0)
+      mainTl.to('.float-art-right', { x: 100 * settings.home.parallaxIntensity, y: -80, rotate: 10, duration: 2 }, 0)
 
-      // Chapter 1 Entrance
-      mainTl.fromTo('.chapter-1', 
-        { opacity: 0, y: 100, scale: 0.95 }, 
-        { opacity: 1, y: 0, scale: 1, duration: 1.5 }, 
-        '-=0.5'
-      )
+      settings.home.stories.forEach((story, index) => {
+        const isFirst = index === 0
+        const isLast = index === settings.home.stories.length - 1
+        const sectionClass = `.chapter-${index + 1}`
 
-      // Chapter 1 Exit -> Chapter 2 Entrance
-      mainTl.to('.chapter-1', { opacity: 0, x: -100, duration: 1 }, '+=1')
-      mainTl.fromTo('.chapter-2', 
-        { opacity: 0, x: 100 }, 
-        { opacity: 1, x: 0, duration: 1.5 }, 
-        '-=0.5'
-      )
+        if (!isFirst) {
+          mainTl.fromTo(sectionClass, 
+            { opacity: 0, x: 100 * settings.home.parallaxIntensity }, 
+            { opacity: 1, x: 0, duration: 1.5 }, 
+            '-=0.5'
+          )
+        } else {
+          mainTl.fromTo(sectionClass, 
+            { opacity: 0, y: 100 * settings.home.parallaxIntensity, scale: 0.95 }, 
+            { opacity: 1, y: 0, scale: 1, duration: 1.5 }, 
+            '-=0.5'
+          )
+        }
 
-      // Fluid Background Transitions
-      mainTl.to('.aurora-1', { scale: 1.2, x: 100, y: 50, opacity: 0.1, duration: 3 }, 0)
-      mainTl.to('.aurora-2', { scale: 1.5, x: -100, y: -50, opacity: 0.1, duration: 3 }, 0)
+        if (!isLast || true) { // Always exit to show CTA
+          mainTl.to(sectionClass, { opacity: 0, x: -100 * settings.home.parallaxIntensity, duration: 1 }, '+=1')
+        }
+      })
 
       // Final CTA
-      mainTl.to('.chapter-2', { opacity: 0, scale: 0.9, duration: 1 }, '+=1')
       mainTl.fromTo('.cta-scene', 
-        { opacity: 0, y: 50 }, 
+        { opacity: 0, y: 50 * settings.home.parallaxIntensity }, 
         { opacity: 1, y: 0, duration: 1.2 }, 
         '-=0.5'
       )
-      mainTl.to('.aurora-1', { opacity: 0.15, scale: 2, duration: 2 }, '-=1')
 
     }, containerRef)
 
-    // 4. Cleanup: Critical for preventing memory leaks and hydration nodes mismatch
     return () => ctx.revert()
-  }, [])
+  }, [settings.home.scrollSpeed, settings.home.parallaxIntensity, settings.home.stories.length])
 
   return (
-    <main className="relative bg-brand-cream min-h-screen select-none overflow-hidden" ref={containerRef}>
+    <main className="relative min-h-screen select-none overflow-hidden" ref={containerRef}>
       <Navbar />
 
       <div className="fixed inset-0 pointer-events-none z-0">
@@ -103,76 +100,61 @@ export default function Home() {
 
       <div className="relative z-10 w-full h-screen">
         
-        {/* SCENE 1: INITIAL HERO (Matches Mockup) */}
-        <section className="hero-scene h-full flex flex-col items-center justify-center px-6 md:px-16">
+        {/* SCENE 1: INITIAL HERO */}
+        <section className="hero-scene bg-[var(--bg-color)] h-full flex flex-col items-center justify-center px-6 md:px-16" style={{ transform: `scale(${settings.home.logoSize})` }}>
           <div className="hero-content text-center space-y-8 md:space-y-12">
             <div className="space-y-4 md:space-y-6">
-              <h1 className="spaced-serif text-5xl md:text-8xl lg:text-[14rem] text-brand-red tracking-[0.3em] md:tracking-[0.5em] leading-none transition-all">
-                ILAARA
+              <h1 className="spaced-serif text-5xl md:text-8xl lg:text-[14rem] text-[var(--color-brand-red)] tracking-[0.3em] md:tracking-[0.5em] leading-none transition-all">
+                {settings.home.hero_title}
               </h1>
               <p className="text-[8px] md:text-sm uppercase tracking-[0.6em] md:tracking-[1em] text-gray-400 font-bold opacity-60">
-                {settings.hero_subtitle}
+                {settings.home.hero_subtitle}
               </p>
             </div>
             
             <div className="pt-16 md:pt-48">
               <Link 
                 href="/shop" 
-                className="px-12 md:px-20 py-6 md:py-8 bg-brand-red text-brand-cream text-[10px] md:text-[12px] uppercase tracking-[0.4em] md:tracking-[0.6em] font-black rounded-full hover:bg-brand-dark hover:scale-105 transition-all shadow-2xl active:scale-95"
+                className="px-12 md:px-20 py-6 md:py-8 bg-[var(--color-brand-red)] text-white text-[10px] md:text-[12px] uppercase tracking-[0.4em] md:tracking-[0.6em] font-black rounded-[var(--radius-full)] hover:opacity-80 hover:scale-105 transition-all shadow-2xl active:scale-95 pointer-events-auto"
               >
                 Explore Collection
               </Link>
             </div>
           </div>
 
-          {/* Scroll Visual Indicator */}
           <div className="absolute bottom-12 flex flex-col items-center gap-4 opacity-20">
-            <div className="w-[1px] h-10 md:h-12 bg-brand-red animate-scroll-line" />
-            <span className="text-[7px] uppercase tracking-widest text-brand-red">Scroll</span>
+            <div className="w-[1px] h-10 md:h-12 bg-[var(--color-brand-red)] animate-scroll-line" />
+            <span className="text-[7px] uppercase tracking-widest text-[var(--color-brand-red)]">Scroll</span>
           </div>
         </section>
 
-        {/* SCENE 2: CHAPTER 1 - CROCHET */}
-        <section className="chapter-1 absolute inset-0 opacity-0 flex flex-col items-center justify-center px-6 md:px-32">
-          <div className="w-full max-w-7xl grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-24 items-center">
-            <div className="relative aspect-square shadow-2xl rounded-sm p-8 md:p-12 bg-white overflow-hidden group">
-              <Image src="/crochet.png" alt="Handmade Crochet" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain transition-transform duration-700 group-hover:scale-110" priority />
+        {/* DYNAMIC STORIES */}
+        {settings.home.stories.map((story, index) => (
+          <section key={index} className={`chapter-${index + 1} absolute inset-0 opacity-0 flex flex-col items-center justify-center px-6 md:px-32 bg-[var(--bg-color)]`}>
+            <div className="w-full max-w-7xl grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-24 items-center">
+              <div className={`relative aspect-square shadow-2xl rounded-[var(--radius-sm)] p-8 md:p-12 bg-white overflow-hidden group ${index % 2 !== 0 ? 'md:order-2' : ''}`}>
+                {story.image && <Image src={story.image} alt={story.title} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover transition-transform duration-700 group-hover:scale-110" priority={index === 0} />}
+              </div>
+              <div className={`space-y-6 md:space-y-10 ${index % 2 !== 0 ? 'md:order-1' : ''}`}>
+                <span className="text-[8px] md:text-[10px] uppercase tracking-[0.6em] text-[var(--color-brand-red)] font-black">Story 0{index + 1}</span>
+                <h3 className="text-4xl md:text-8xl font-light italic font-serif leading-none tracking-tight text-gray-900">{story.title}</h3>
+                <p className="text-lg md:text-2xl text-gray-400 font-light leading-relaxed max-w-sm">
+                  {story.body}
+                </p>
+              </div>
             </div>
-            <div className="space-y-6 md:space-y-10">
-              <span className="text-[8px] md:text-[10px] uppercase tracking-[0.6em] text-brand-red font-black">Story 01</span>
-              <h3 className="text-4xl md:text-9xl font-light italic font-serif leading-none tracking-tight text-brand-dark">The <br /> Texture.</h3>
-              <p className="text-lg md:text-2xl text-gray-400 font-light leading-relaxed max-w-sm">
-                Woven from quiet hours. Each piece carries the weight of slow time.
-              </p>
-            </div>
-          </div>
-        </section>
+          </section>
+        ))}
 
-        {/* SCENE 3: CHAPTER 2 - POLAROID */}
-        <section className="chapter-2 absolute inset-0 opacity-0 flex flex-col items-center justify-center px-6 md:px-32">
-          <div className="w-full max-w-7xl grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-24 items-center">
-            <div className="md:order-2 relative aspect-[4/3] shadow-2xl rounded-sm p-8 md:p-12 bg-white overflow-hidden group">
-              <Image src="/polaroid.png" alt="Grainy Memories" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain transition-transform duration-700 group-hover:scale-110" />
-            </div>
-            <div className="md:order-1 space-y-6 md:space-y-10">
-              <span className="text-[8px] md:text-[10px] uppercase tracking-[0.6em] text-brand-red font-black">Story 02</span>
-              <h3 className="text-4xl md:text-9xl font-light italic font-serif leading-none tracking-tight text-brand-dark">The <br /> Moment.</h3>
-              <p className="text-lg md:text-2xl text-gray-400 font-light leading-relaxed max-w-sm">
-                Capturing light that refuses to be duplicated. Grain and memory combined.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* SCENE 4: FINAL CTA */}
-        <section className="cta-scene absolute inset-0 opacity-0 flex flex-col items-center justify-center px-6">
+        {/* FINAL CTA */}
+        <section className="cta-scene absolute inset-0 opacity-0 flex flex-col items-center justify-center px-6 bg-[var(--bg-color)]">
           <div className="text-center space-y-8 md:space-y-16">
-            <h2 className="text-4xl md:text-9xl font-light italic font-serif text-brand-dark opacity-10 tracking-tighter leading-none">
+            <h2 className="text-4xl md:text-9xl font-light italic font-serif text-gray-900 opacity-10 tracking-tighter leading-none">
               Honest craft, <br /> slowly made.
             </h2>
             <Link 
               href="/shop" 
-              className="inline-block px-12 md:px-20 py-6 md:py-8 bg-brand-red text-brand-cream text-[10px] md:text-[11px] uppercase tracking-[0.6em] font-black rounded-full hover:bg-brand-dark transition-all scale-105 md:scale-110"
+              className="inline-block px-12 md:px-20 py-6 md:py-8 bg-[var(--color-brand-red)] text-white text-[10px] md:text-[11px] uppercase tracking-[0.6em] font-black rounded-[var(--radius-full)] hover:opacity-80 transition-all scale-105 md:scale-110 pointer-events-auto"
             >
               Enter the Shop
             </Link>

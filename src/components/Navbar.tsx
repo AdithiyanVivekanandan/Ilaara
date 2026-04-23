@@ -3,16 +3,31 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTheme } from '@/components/ThemeProvider'
 
 export default function Navbar() {
   const pathname = usePathname()
   const [scrolled, setScrolled] = useState(false)
+  const { settings } = useTheme()
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20)
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  const getLinkClasses = (isActive: boolean) => {
+    const base = 'text-[11px] uppercase tracking-[0.4em] font-bold transition-all pointer-events-auto '
+    const active = isActive ? 'text-brand-red ' : 'text-brand-dark opacity-40 hover:opacity-100 '
+    
+    if (settings.home.navStyle === 'underline') {
+      return base + active + (isActive ? 'border-b-2 border-brand-red pb-1' : '')
+    }
+    if (settings.home.navStyle === 'pill') {
+      return base + active + (isActive ? 'bg-brand-red text-white px-4 py-2 rounded-full !opacity-100 ' : 'px-4 py-2 ')
+    }
+    return base + active
+  }
 
   return (
     <nav className="fixed top-0 left-0 w-full z-[100] py-6 md:py-8 px-6 md:px-24 flex justify-between items-center pointer-events-none">
@@ -22,7 +37,7 @@ export default function Navbar() {
           scrolled ? 'glass-nav text-lg md:text-xl' : 'text-lg md:text-2xl'
         }`}
       >
-        ILAARA
+        {settings.home.hero_title || 'ILAARA'}
       </Link>
 
       <div className={`flex gap-12 items-center pointer-events-none transition-all duration-500 rounded-full ${
@@ -30,13 +45,13 @@ export default function Navbar() {
       }`}>
         <Link 
           href="/shop" 
-          className={`text-[11px] uppercase tracking-[0.4em] font-bold transition-all pointer-events-auto ${pathname === '/shop' ? 'text-brand-red' : 'text-brand-dark opacity-40 hover:opacity-100'}`}
+          className={getLinkClasses(pathname === '/shop')}
         >
           Shop
         </Link>
         <Link 
           href="/contact" 
-          className={`text-[11px] uppercase tracking-[0.4em] font-bold transition-all pointer-events-auto ${pathname === '/contact' ? 'text-brand-red' : 'text-brand-dark opacity-40 hover:opacity-100'}`}
+          className={getLinkClasses(pathname === '/contact')}
         >
           Story
         </Link>
