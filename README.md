@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ILAARA: A High-Fidelity Storytelling Platform
 
-## Getting Started
+ILAARA is a modern, premium e-commerce platform built with Next.js 16, designed to blend immersive storytelling with seamless shopping experiences.
 
-First, run the development server:
+## ✨ Core Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Immersive Landing Page**: High-fidelity, scroll-driven storytelling using GSAP and minimalist line-art assets.
+- **Secure Admin Dashboard**: Full control over products, orders, and site settings with persistent audit logging.
+- **Dynamic Product Discovery**: Smooth animations and premium UI for exploring hand-crafted products.
+- **Seamless Checkout**: Integrated with Razorpay for secure and reliable payment processing.
+- **Real-time Notifications**: Automated email alerts for orders and administrative security audits via Resend.
+- **Cloud-Powered Assets**: Image optimization and management powered by Cloudinary.
+- **Robust Security**: Hardened security posture with anomaly detection and automated admin alerts.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚀 Tech Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Framework**: [Next.js 16+](https://nextjs.org/)
+- **UI/UX**: React 19, Tailwind CSS 4, Lucide Icons
+- **Backend & Auth**: [Supabase](https://supabase.com/)
+- **Animations**: [GSAP](https://gsap.com/)
+- **Payments**: Razorpay
+- **Email**: Resend
+- **Storage**: Cloudinary
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🛠️ Getting Started
 
-## Learn More
+### Prerequisites
 
-To learn more about Next.js, take a look at the following resources:
+- Node.js 18+
+- npm / yarn / pnpm
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Installation
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/AdithiyanVivekanandan/Ilaara.git
+   cd ilaara
+   ```
 
-## Deploy on Vercel
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+3. Set up environment variables:
+   Create a `.env.local` file in the root and add your credentials:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=...
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+   ADMIN_EMAIL=...
+   RAZORPAY_KEY_ID=...
+   RAZORPAY_KEY_SECRET=...
+   CLOUDINARY_CLOUD_NAME=...
+   RESEND_API_KEY=...
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+4. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+### Deployment
+
+The easiest way to deploy is via [Vercel](https://vercel.com/new). Simply connect your GitHub repository and import the project.
+
+---
+
+Built with ❤️ by Adithiyan.
