@@ -36,14 +36,20 @@ export default async function proxy(request: NextRequest) {
       path !== '/admin/login' && 
       path !== '/admin/unauthorized') {
     
+    // Debug log for Vercel (Only visible in dashboard logs)
+    console.log(`[Proxy] Checking access for: ${user?.email || 'Anonymous'} on path: ${path}`)
+
     // Not logged in
     if (!user) {
+      console.log(`[Proxy] No user found, redirecting to login.`)
       return NextResponse.redirect(new URL('/admin/login', request.url))
     }
     
     // Authorized check (Strict email matching)
-    if (user.email?.toLowerCase().trim() !== process.env.ADMIN_EMAIL?.toLowerCase().trim()) {
-      // Redirect to unauthorized page instead of home for better UX/Debugging
+    const isAdmin = user.email?.toLowerCase().trim() === process.env.ADMIN_EMAIL?.toLowerCase().trim()
+    
+    if (!isAdmin) {
+      console.log(`[Proxy] User ${user.email} is not authorized for admin.`)
       return NextResponse.redirect(new URL('/admin/unauthorized', request.url))
     }
   }

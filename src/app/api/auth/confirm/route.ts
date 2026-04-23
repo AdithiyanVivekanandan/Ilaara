@@ -15,11 +15,16 @@ export async function GET(request: NextRequest) {
       type,
       token_hash,
     })
+    
     if (!error) {
+      console.log(`[AuthConfirm] Successfully verified magic link. Redirecting to ${next}`)
       return NextResponse.redirect(new URL(next, request.url))
+    } else {
+      console.error(`[AuthConfirm] Verification error: ${error.message}`)
     }
   }
 
+  console.warn(`[AuthConfirm] Failed verification or missing parameters. Redirecting to login.`)
   // return the user to an error page with some instructions
   return NextResponse.redirect(new URL('/admin/login?error=auth-failed', request.url))
 }
