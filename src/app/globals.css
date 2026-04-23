@@ -67,9 +67,10 @@
 
 /* Glassmorphism & Fluidity */
 .glass-nav {
-  backdrop-filter: blur(12px) saturate(200%);
-  background-color: rgba(250, 249, 246, 0.85);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
+  backdrop-filter: blur(20px) saturate(200%);
+  background-color: rgba(250, 249, 246, 0.9);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  pointer-events: auto;
 }
 
 .aurora-blob {
