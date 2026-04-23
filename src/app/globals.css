@@ -67,8 +67,8 @@
 
 /* Glassmorphism & Fluidity */
 .glass-nav {
-  backdrop-filter: blur(20px) saturate(200%);
-  background-color: rgba(250, 249, 246, 0.9);
+  backdrop-filter: blur(var(--glass-blur, 20px)) saturate(200%);
+  background-color: rgba(250, 249, 246, var(--navbar-opacity, 0.9));
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   pointer-events: auto;
 }

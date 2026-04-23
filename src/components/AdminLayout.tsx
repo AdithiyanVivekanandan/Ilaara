@@ -10,6 +10,7 @@ function Sidebar({ activeTab }: { activeTab: string }) {
     { label: 'Activity', href: '/admin/orders', id: 'orders' },
     { label: 'Messages', href: '/admin/enquiries', id: 'enquiries' },
     { label: 'Shield', href: '/admin/security', id: 'security' },
+    { label: 'Customize', href: '/admin/customize', id: 'customize' },
   ]
 
   return (

@@ -6,6 +6,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Navbar from '@/components/Navbar'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useTheme } from '@/components/ThemeProvider'
 
 /**
  * Ilaara Landing Page
@@ -13,7 +14,7 @@ import Link from 'next/link'
  */
 export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null)
-  const heroRef = useRef<HTMLDivElement>(null)
+  const { settings } = useTheme()
 
   useLayoutEffect(() => {
     // 1. Mount Check: Prevent hydration errors by ensuring code runs on client
@@ -110,7 +111,7 @@ export default function Home() {
                 ILAARA
               </h1>
               <p className="text-[8px] md:text-sm uppercase tracking-[0.6em] md:tracking-[1em] text-gray-400 font-bold opacity-60">
-                A stitch starts here
+                {settings.hero_subtitle}
               </p>
             </div>
             

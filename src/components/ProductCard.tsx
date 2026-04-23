@@ -19,7 +19,10 @@ export default function ProductCard({ product }: { product: Product }) {
       href={`/product/${product.slug}`}
       className="group block space-y-4"
     >
-      <div className="relative aspect-[4/5] bg-brand-cream overflow-hidden rounded-sm transition-all duration-700 group-hover:shadow-xl">
+      <div 
+        className="relative aspect-[4/5] bg-brand-cream overflow-hidden transition-all duration-700 group-hover:shadow-xl"
+        style={{ borderRadius: 'var(--radius-sm)' }}
+      >
         {product.images?.[0] ? (
           <Image
             src={product.images[0]}
