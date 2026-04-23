@@ -5,31 +5,32 @@ import { createClient } from '@/lib/supabase/server'
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const token_hash = searchParams.get('token_hash')
+  const code = searchParams.get('code')
   const type = searchParams.get('type') as EmailOtpType | null
   const next = searchParams.get('next') ?? '/admin'
 
   if (token_hash && type) {
     const supabase = await createClient()
-
-    // 1. Verify the OTP
-    const { data, error } = await supabase.auth.verifyOtp({
-      type,
-      token_hash,
-    })
+    const { data, error } = await supabase.auth.verifyOtp({ type, token_hash })
     
     if (!error && data.session) {
-      console.log(`[AuthConfirm] Session established for: ${data.user?.email}`)
-      
-      // 2. Clear out any previous "error" params and go to the dashboard
-      const response = NextResponse.redirect(new URL(next, request.url))
-      
-      // Force cookies to be sent immediately
-      return response
-    } else {
-      console.error(`[AuthConfirm] Verification failed: ${error?.message || 'No session created'}`)
+      console.log(`[AuthConfirm] TokenHash verified. Session established.`)
+      return NextResponse.redirect(new URL(next, request.url))
     }
+    console.error(`[AuthConfirm] TokenHash error: ${error?.message}`)
+  } 
+  
+  if (code) {
+    const supabase = await createClient()
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+    
+    if (!error && data.session) {
+      console.log(`[AuthConfirm] Code exchanged. Session established for ${data.user?.email}`)
+      return NextResponse.redirect(new URL(next, request.url))
+    }
+    console.error(`[AuthConfirm] Code exchange error: ${error?.message}`)
   }
 
-  console.warn(`[AuthConfirm] Auth path failed. Redirecting to login.`)
+  console.warn(`[AuthConfirm] Failed verification. Check Site URL settings.`)
   return NextResponse.redirect(new URL('/admin/login?error=confirmation-failed', request.url))
 }
