@@ -33,15 +33,15 @@ export default function ShopPage() {
   }, [category, supabase])
 
   return (
-    <main className="min-h-screen bg-brand-cream pt-32 px-8 md:px-16 pb-24">
+    <main className="min-h-screen bg-brand-cream pt-48 px-8 md:px-16 pb-24">
       <Navbar />
       
-      <header className="mb-16 space-y-8">
-        <h1 className="text-5xl md:text-7xl font-light text-brand-red italic">
+      <header className="mb-24 space-y-10">
+        <h1 className="text-6xl md:text-8xl font-light text-brand-red italic tracking-tighter">
           The Collection
         </h1>
         
-        <div className="flex gap-8 text-[10px] uppercase tracking-[0.3em]">
+        <div className="flex flex-wrap gap-x-12 gap-y-4 text-[10px] uppercase tracking-[0.4em] border-b border-brand-red/5 pb-8">
           <button 
             onClick={() => setCategory(null)}
             className={`transition-colors ${!category ? 'text-brand-red font-bold' : 'text-gray-400 hover:text-brand-dark'}`}
