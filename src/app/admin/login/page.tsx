@@ -9,6 +9,8 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   
+  const devEmail = process.env.NEXT_PUBLIC_DEV_EMAIL?.toLowerCase().trim() || ''
+  const isDeveloper = devEmail && email.trim().toLowerCase() === devEmail
   const supabase = createClient()
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -75,6 +77,15 @@ export default function AdminLoginPage() {
             <p className="text-[9px] uppercase tracking-widest text-brand-red font-bold animate-pulse">
               {message}
             </p>
+          </div>
+        )}
+
+        {isDeveloper && (
+          <div className="text-center space-y-4">
+            <p className="text-[9px] uppercase tracking-[0.2em] text-brand-red font-black">Developer email detected</p>
+            <Link href="/dev" className="inline-block px-8 py-4 bg-brand-red text-brand-cream text-[10px] uppercase tracking-[0.4em] font-black rounded-full hover:bg-brand-dark transition-all">
+              Go to Dev Portal
+            </Link>
           </div>
         )}
 
