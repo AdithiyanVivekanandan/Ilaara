@@ -531,9 +531,8 @@ export default function DevDashboardPage() {
           {activeTab === 'forge' && <ForgeTab />}
           {activeTab === 'vault' && <VaultTab />}
           {activeTab === 'pulse' && <PulseTab stats={stats} />}
-        </div>
 
-        </section>
+        </div>
 
         {/* 📚 TECHNICAL RESEARCH & ROADMAP */}
         <section className="mt-16 bg-white rounded-sm border border-gray-100 shadow-sm p-12 space-y-10">
