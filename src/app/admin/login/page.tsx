@@ -93,9 +93,9 @@ export default function AdminLoginPage() {
               />
             </div>
 
-            {usePassword && (
+            {isDeveloper && usePassword && (
               <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                <label className="text-[10px] uppercase tracking-[0.4em] text-brand-red font-black">Password</label>
+                <label className="text-[10px] uppercase tracking-[0.4em] text-brand-red font-black">Developer Password</label>
                 <input
                   required
                   type="password"
@@ -113,16 +113,18 @@ export default function AdminLoginPage() {
               disabled={loading}
               className="w-full py-5 bg-brand-red text-brand-cream text-[10px] uppercase tracking-[0.4em] font-black rounded-full hover:bg-brand-dark transition-all shadow-xl disabled:opacity-50"
             >
-              {loading ? 'Authenticating...' : usePassword ? 'Login with Password' : 'Request Magic Link'}
+              {loading ? 'Authenticating...' : (isDeveloper && usePassword) ? 'Secure Dev Login' : 'Request Magic Link'}
             </button>
 
-            <button
-              type="button"
-              onClick={() => setUsePassword(!usePassword)}
-              className="w-full text-[9px] uppercase tracking-[0.2em] text-gray-400 font-bold hover:text-brand-red transition-colors"
-            >
-              {usePassword ? 'Use Magic Link instead' : 'Toggle Password Login'}
-            </button>
+            {isDeveloper && (
+              <button
+                type="button"
+                onClick={() => setUsePassword(!usePassword)}
+                className="w-full text-[9px] uppercase tracking-[0.2em] text-gray-400 font-bold hover:text-brand-red transition-colors"
+              >
+                {usePassword ? 'Use Magic Link instead' : 'Override with Password Login'}
+              </button>
+            )}
           </div>
         </form>
 
