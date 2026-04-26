@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 
@@ -13,13 +13,23 @@ export default function AdminLoginPage() {
   const isDeveloper = devEmail && email.trim().toLowerCase() === devEmail
   const supabase = createClient()
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      if (params.get('error') === 'confirmation-failed') {
+        setMessage('Magic link failed or expired. Please request a new one.')
+      }
+    }
+  }, [])
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setMessage('')
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
-    const redirectUrl = `${siteUrl}/api/auth/confirm?next=/admin`
+    const nextPath = isDeveloper ? '/dev' : '/admin'
+    const redirectUrl = `${siteUrl}/api/auth/confirm?next=${nextPath}`
 
     const { error } = await supabase.auth.signInWithOtp({
       email,
@@ -29,7 +39,10 @@ export default function AdminLoginPage() {
     })
 
     if (error) {
-      setMessage(`Error: ${error.message}`)
+      const extra = isDeveloper
+        ? ' This developer address must also be registered in Supabase Auth or signups must be enabled.'
+        : ''
+      setMessage(`Error: ${error.message}${extra}`)
     } else {
       setMessage('Magic link sent to your email.')
     }
@@ -80,12 +93,21 @@ export default function AdminLoginPage() {
           </div>
         )}
 
+        {isDeveloper && !message && (
+          <div className="text-center p-4 bg-brand-cream/10 rounded-full border border-brand-red/10">
+            <p className="text-[9px] uppercase tracking-widest text-brand-red font-bold">
+              Developer email detected.
+            </p>
+            <p className="text-[8px] uppercase tracking-[0.3em] text-gray-400">
+              Ensure this address is registered in Supabase Auth if signups are disabled.
+            </p>
+          </div>
+        )}
+
         {isDeveloper && (
           <div className="text-center space-y-4">
             <p className="text-[9px] uppercase tracking-[0.2em] text-brand-red font-black">Developer email detected</p>
-            <Link href="/dev" className="inline-block px-8 py-4 bg-brand-red text-brand-cream text-[10px] uppercase tracking-[0.4em] font-black rounded-full hover:bg-brand-dark transition-all">
-              Go to Dev Portal
-            </Link>
+            <p className="text-[10px] text-gray-500">You will be redirected to the Dev Portal after authentication.</p>
           </div>
         )}
 

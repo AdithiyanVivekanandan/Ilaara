@@ -35,7 +35,7 @@ export default async function proxy(request: NextRequest) {
 
   // 1. ADMIN / DEV PROTECTION LOGIC
   const isAdmin = normalizedEmail === process.env.ADMIN_EMAIL?.toLowerCase().trim()
-  const isDev = normalizedEmail === process.env.DEV_EMAIL?.toLowerCase().trim()
+  const isDev = normalizedEmail === (process.env.DEV_EMAIL || process.env.NEXT_PUBLIC_DEV_EMAIL)?.toLowerCase().trim()
 
   if (path.startsWith('/admin') && 
       path !== '/admin/login' && 
