@@ -65,7 +65,7 @@ export default async function proxy(request: NextRequest) {
   }
 
   // 2. SECURITY HEADERS
-  const isDev = process.env.NODE_ENV === 'development'
+  const isLocalDev = process.env.NODE_ENV === 'development'
   
   supabaseResponse.headers.set('X-Frame-Options', 'DENY')
   supabaseResponse.headers.set('X-Content-Type-Options', 'nosniff')
@@ -76,7 +76,7 @@ export default async function proxy(request: NextRequest) {
   // Content Security Policy
   const csp = [
     "default-src 'self'",
-    `script-src 'self' ${isDev ? "'unsafe-eval'" : ""} 'unsafe-inline' https://upload-widget.cloudinary.com`,
+    `script-src 'self' ${isLocalDev ? "'unsafe-eval'" : ""} 'unsafe-inline' https://upload-widget.cloudinary.com`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https://res.cloudinary.com",
     "connect-src 'self' https://*.supabase.co",
