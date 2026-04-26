@@ -1,9 +1,14 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
 
 function Sidebar({ activeTab }: { activeTab: string }) {
+  const [signingOut, setSigningOut] = useState(false)
+  const router = useRouter()
+  const supabase = createClient()
   const navLinks = [
     { label: 'Overview', href: '/admin', id: 'dashboard' },
     { label: 'Inventory', href: '/admin/products', id: 'products' },
@@ -11,6 +16,7 @@ function Sidebar({ activeTab }: { activeTab: string }) {
     { label: 'Messages', href: '/admin/enquiries', id: 'enquiries' },
     { label: 'Shield', href: '/admin/security', id: 'security' },
     { label: 'Customize', href: '/admin/customize', id: 'customize' },
+    { label: 'Developer', href: '/dev', id: 'developer' },
   ]
 
   return (
@@ -44,6 +50,17 @@ function Sidebar({ activeTab }: { activeTab: string }) {
           <p className="text-[9px] uppercase tracking-widest text-gray-400">Security State</p>
           <p className="text-[10px] font-bold text-brand-red">Hardened</p>
         </div>
+        <button
+          disabled={signingOut}
+          onClick={async () => {
+            setSigningOut(true)
+            await supabase.auth.signOut()
+            router.push('/admin/login')
+          }}
+          className="w-full py-3 text-[10px] uppercase tracking-[0.4em] font-black rounded-full border border-brand-red text-brand-red hover:bg-brand-red hover:text-white transition-all disabled:opacity-50"
+        >
+          {signingOut ? 'Signing out...' : 'Logout'}
+        </button>
       </div>
     </aside>
   )
