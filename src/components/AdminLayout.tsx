@@ -1,14 +1,28 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 function Sidebar({ activeTab }: { activeTab: string }) {
   const [signingOut, setSigningOut] = useState(false)
+  const [isDevUser, setIsDevUser] = useState(false)
   const router = useRouter()
+  const pathname = usePathname()
   const supabase = createClient()
+  const devEmail = process.env.NEXT_PUBLIC_DEV_EMAIL?.toLowerCase().trim() || ''
+
+  useEffect(() => {
+    async function loadUser() {
+      const { data, error } = await supabase.auth.getUser()
+      if (!error && data.user) {
+        setIsDevUser(data.user.email?.toLowerCase().trim() === devEmail)
+      }
+    }
+    loadUser()
+  }, [supabase, devEmail])
+
   const navLinks = [
     { label: 'Overview', href: '/admin', id: 'dashboard' },
     { label: 'Inventory', href: '/admin/products', id: 'products' },
@@ -16,8 +30,10 @@ function Sidebar({ activeTab }: { activeTab: string }) {
     { label: 'Messages', href: '/admin/enquiries', id: 'enquiries' },
     { label: 'Shield', href: '/admin/security', id: 'security' },
     { label: 'Customize', href: '/admin/customize', id: 'customize' },
-    { label: 'Developer', href: '/dev', id: 'developer' },
   ]
+  if (isDevUser || pathname.startsWith('/dev')) {
+    navLinks.push({ label: 'Developer', href: '/dev', id: 'developer' })
+  }
 
   return (
     <aside className="w-72 bg-white border-r border-gray-100 flex flex-col fixed h-full z-20">
