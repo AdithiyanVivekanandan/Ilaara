@@ -89,12 +89,11 @@ export default function Home() {
     <main className="relative min-h-screen select-none overflow-hidden" ref={containerRef}>
       <Navbar />
 
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-white/90 via-white/70 to-[var(--color-secondary)] opacity-80" />
-        <div className="float-art-left absolute top-1/4 left-[5%] w-64 md:w-[28rem] aspect-square opacity-20 grayscale mix-blend-soft-light">
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="float-art-left absolute top-1/4 left-[5%] w-64 md:w-[28rem] aspect-square opacity-[0.07] grayscale">
           <Image src="/crochet.png" alt="" fill className="object-contain" loading="eager" />
         </div>
-        <div className="float-art-right absolute top-1/3 right-[5%] w-72 md:w-[32rem] aspect-square opacity-20 grayscale mix-blend-soft-light">
+        <div className="float-art-right absolute top-1/3 right-[5%] w-72 md:w-[32rem] aspect-square opacity-[0.07] grayscale">
           <Image src="/polaroid.png" alt="" fill className="object-contain" loading="eager" />
         </div>
       </div>
@@ -102,8 +101,8 @@ export default function Home() {
       <div className="relative z-10 w-full h-screen">
         
         {/* SCENE 1: INITIAL HERO */}
-        <section className="hero-scene bg-gradient-to-br from-[var(--bg-color)] via-white/92 to-[var(--color-secondary)] h-full flex flex-col items-center justify-center px-6 md:px-16 relative overflow-hidden" style={{ transform: `scale(${settings.home.logoSize})` }}>
-          <div className="hero-content relative z-20 rounded-[var(--radius-sm)] bg-white/85 backdrop-blur-sm px-8 py-10 md:px-14 md:py-14 shadow-2xl text-center space-y-8 md:space-y-12">
+        <section className="hero-scene bg-[var(--bg-color)] h-full flex flex-col items-center justify-center px-6 md:px-16" style={{ transform: `scale(${settings.home.logoSize})` }}>
+          <div className="hero-content text-center space-y-8 md:space-y-12">
             <div className="space-y-4 md:space-y-6">
               <h1 className="spaced-serif text-5xl md:text-8xl lg:text-[14rem] text-[var(--color-brand-red)] tracking-[0.3em] md:tracking-[0.5em] leading-none transition-all">
                 {settings.home.hero_title}

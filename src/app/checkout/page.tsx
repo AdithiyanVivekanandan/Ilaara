@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Navbar from '@/components/Navbar'
 import { useCart } from '@/components/CartProvider'
 import { useRouter } from 'next/navigation'
+import Script from 'next/script'
 
 export default function CheckoutPage() {
   const { items, totalPrice, clearCart } = useCart()
@@ -17,7 +18,6 @@ export default function CheckoutPage() {
     city: '',
     state: '',
     pincode: '',
-    customRequest: '',
     website: '' // Honeypot field
   })
 
@@ -42,22 +42,38 @@ export default function CheckoutPage() {
             line1: formData.line1,
             city: formData.city,
             state: formData.state,
-            pincode: formData.pincode,
-            customRequest: formData.customRequest,
+            pincode: formData.pincode
           },
           items: items.map(i => ({ product_id: i.id, quantity: i.quantity })),
-          website: formData.website // Honeypot check
+          website: formData.website // honeymoon check
         })
       })
 
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Order submission failed')
+      if (!res.ok) throw new Error(data.error || 'Checkout failed')
 
-      clearCart()
-      if (data.whatsappUrl) {
-        window.open(data.whatsappUrl, '_blank', 'noopener,noreferrer')
+      // Razorpay Integration
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: data.amount,
+        currency: data.currency,
+        name: 'Ilaara',
+        description: 'Order Payment',
+        order_id: data.orderId,
+        handler: function (response: any) {
+          clearCart()
+          router.push(`/success?order=${data.internalOrderId}`)
+        },
+        prefill: {
+          name: formData.name,
+          email: formData.email,
+          contact: formData.phone
+        },
+        theme: { color: '#8B0000' }
       }
-      router.push(`/success?order=${data.internalOrderId}`)
+
+      const rzp = new (window as any).Razorpay(options)
+      rzp.open()
     } catch (err: any) {
       alert(err.message)
     } finally {
@@ -68,6 +84,7 @@ export default function CheckoutPage() {
   return (
     <main className="min-h-screen bg-brand-cream pt-32 px-8 md:px-16 pb-24">
       <Navbar />
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" />
       
       <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-24">
         {/* Form */}
@@ -147,21 +164,11 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            <div className="space-y-4">
-              <label className="text-[10px] uppercase tracking-[0.4em] text-gray-400 font-black">Custom Request</label>
-              <textarea
-                placeholder="Any custom requests, sizing notes or details for your order"
-                className="w-full min-h-[120px] bg-transparent border border-gray-200 rounded-sm p-4 text-sm focus:border-brand-red outline-none transition-colors"
-                value={formData.customRequest}
-                onChange={e => setFormData({...formData, customRequest: e.target.value})}
-              />
-            </div>
-
             <button
               disabled={loading}
               className="w-full py-5 bg-brand-red text-brand-cream text-xs uppercase tracking-[0.3em] font-bold rounded-full hover:bg-brand-dark transition-all disabled:opacity-50 shadow-xl"
             >
-              {loading ? 'Processing...' : 'Send Order via WhatsApp'}
+              {loading ? 'Processing...' : 'Pay with Razorpay'}
             </button>
           </form>
         </section>
