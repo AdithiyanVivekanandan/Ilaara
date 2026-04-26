@@ -126,10 +126,10 @@
 
 /* Glassmorphism & Fluidity */
 .glass-nav {
-  backdrop-filter: blur(var(--glass-blur, 20px)) saturate(200%);
-  background: rgba(var(--glass-rgb, 255, 255, 255), var(--navbar-opacity, 0.9));
-  border: 1px solid rgba(var(--glass-rgb, 255, 255, 255), 0.12);
-  box-shadow: 0 4px 20px rgba(var(--glass-rgb, 255, 255, 255), 0.1);
+  backdrop-filter: blur(var(--glass-blur, 20px)) saturate(180%);
+  background: rgba(255, 255, 255, var(--navbar-opacity, 0.92));
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.08);
   pointer-events: auto;
 }
 

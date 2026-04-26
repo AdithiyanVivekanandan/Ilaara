@@ -31,25 +31,35 @@ export default async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const path = request.nextUrl.pathname
 
-  // 1. ADMIN PROTECTION LOGIC
+  // 1. ADMIN / DEV PROTECTION LOGIC
+  const isAdmin = user.email?.toLowerCase().trim() === process.env.ADMIN_EMAIL?.toLowerCase().trim()
+  const isDev = user.email?.toLowerCase().trim() === process.env.DEV_EMAIL?.toLowerCase().trim()
+
   if (path.startsWith('/admin') && 
       path !== '/admin/login' && 
       path !== '/admin/unauthorized') {
-    
-    // Debug log for Vercel (Only visible in dashboard logs)
-    console.log(`[Proxy] Checking access for: ${user?.email || 'Anonymous'} on path: ${path}`)
 
-    // Not logged in
+    console.log(`[Proxy] Checking admin access for: ${user?.email || 'Anonymous'} on path: ${path}`)
+
     if (!user) {
       console.log(`[Proxy] No user found, redirecting to login.`)
       return NextResponse.redirect(new URL('/admin/login', request.url))
     }
-    
-    // Authorized check (Strict email matching)
-    const isAdmin = user.email?.toLowerCase().trim() === process.env.ADMIN_EMAIL?.toLowerCase().trim()
-    
-    if (!isAdmin) {
+
+    if (!isAdmin && !isDev) {
       console.log(`[Proxy] User ${user.email} is not authorized for admin.`)
+      return NextResponse.redirect(new URL('/admin/unauthorized', request.url))
+    }
+  }
+
+  if (path.startsWith('/dev')) {
+    console.log(`[Proxy] Checking dev access for: ${user?.email || 'Anonymous'} on path: ${path}`)
+
+    if (!user) {
+      return NextResponse.redirect(new URL('/admin/login', request.url))
+    }
+
+    if (!isDev) {
       return NextResponse.redirect(new URL('/admin/unauthorized', request.url))
     }
   }
@@ -61,15 +71,16 @@ export default async function proxy(request: NextRequest) {
   supabaseResponse.headers.set('X-Content-Type-Options', 'nosniff')
   supabaseResponse.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   supabaseResponse.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  supabaseResponse.headers.set('Cross-Origin-Resource-Policy', 'same-origin')
   
   // Content Security Policy
   const csp = [
     "default-src 'self'",
-    `script-src 'self' ${isDev ? "'unsafe-eval'" : ""} 'unsafe-inline' https://checkout.razorpay.com`,
+    `script-src 'self' ${isDev ? "'unsafe-eval'" : ""} 'unsafe-inline' https://upload-widget.cloudinary.com`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https://res.cloudinary.com",
-    "connect-src 'self' https://*.supabase.co https://api.razorpay.com",
-    "frame-src https://api.razorpay.com",
+    "connect-src 'self' https://*.supabase.co",
+    "frame-src https://upload-widget.cloudinary.com",
     "font-src 'self' data:",
   ].join('; ')
 

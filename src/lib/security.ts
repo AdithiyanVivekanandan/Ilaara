@@ -10,6 +10,14 @@ export function rateLimit(
   windowMs: number = 60000
 ): boolean {
   const now = Date.now()
+
+  // Cleanup stale entries to avoid in-memory leak
+  for (const [key, record] of rateLimitStore.entries()) {
+    if (record.resetAt < now) {
+      rateLimitStore.delete(key)
+    }
+  }
+
   const record = rateLimitStore.get(identifier)
 
   if (!record || now > record.resetAt) {

@@ -1,14 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit, getClientIP, sanitizeText, validateEmail, validatePhone, validatePincode, isBot, logSecurityEvent } from '@/lib/security'
 import { NextResponse } from 'next/server'
-import Razorpay from 'razorpay'
 
 export async function POST(request: Request) {
-  const razorpay = new Razorpay({
-    key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
-    key_secret: process.env.RAZORPAY_KEY_SECRET!,
-  })
-
   const ip = getClientIP(request)
 
   // Strict rate limit on checkout — max 5 per minute per IP
@@ -81,18 +75,32 @@ export async function POST(request: Request) {
   }
 
   try {
-    // Create Razorpay order
-    const razorpayOrder = await razorpay.orders.create({
-      amount: Math.round(totalAmount * 100), // paise
-      currency: 'INR',
-      receipt: `receipt_${Date.now()}`,
-    })
+    const whatsappNumber = process.env.CLIENT_WHATSAPP_NUMBER
+    if (!whatsappNumber) {
+      return NextResponse.json({ error: 'WhatsApp configuration missing' }, { status: 500 })
+    }
 
-    // Store pending order in Supabase
+    const encodedPhone = whatsappNumber.replace(/\D/g, '')
+    const messageLines = [
+      'New Ilaara order received!',
+      `Name: ${sanitizeText(buyerName)}`,
+      `Email: ${buyerEmail.toLowerCase().trim()}`,
+      `Phone: ${buyerPhone.replace(/\s/g, '')}`,
+      `Address: ${sanitizeText(shippingAddress.line1)}, ${sanitizeText(shippingAddress.city)}, ${sanitizeText(shippingAddress.state)} - ${shippingAddress.pincode}`,
+      'Items:',
+      ...verifiedItems.map(item => `• ${item.name} ×${item.quantity} @ ₹${item.price}`),
+      `Total: ₹${totalAmount.toLocaleString('en-IN')}`,
+    ]
+
+    if (shippingAddress.customRequest) {
+      messageLines.push(`Custom request: ${sanitizeText(shippingAddress.customRequest)}`)
+    }
+
+    const whatsappUrl = `https://wa.me/${encodedPhone}?text=${encodeURIComponent(messageLines.join('\n'))}`
+
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
-        razorpay_order_id: razorpayOrder.id,
         buyer_name: sanitizeText(buyerName),
         buyer_email: buyerEmail.toLowerCase().trim(),
         buyer_phone: buyerPhone.replace(/\s/g, ''),
@@ -101,10 +109,11 @@ export async function POST(request: Request) {
           city: sanitizeText(shippingAddress.city),
           state: sanitizeText(shippingAddress.state),
           pincode: shippingAddress.pincode,
+          custom_request: sanitizeText(shippingAddress.customRequest || ''),
         },
         items: verifiedItems,
         total_amount: totalAmount,
-        status: 'pending',
+        status: 'sent',
       })
       .select('id')
       .single()
@@ -114,9 +123,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      orderId: razorpayOrder.id,
-      amount: razorpayOrder.amount,
-      currency: razorpayOrder.currency,
+      whatsappUrl,
       internalOrderId: order.id,
     })
   } catch (error) {
