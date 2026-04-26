@@ -32,12 +32,41 @@ export type SiteConfig = {
   }
   theme: {
     bg_color: string
-    brand_color: string
+    primary_color: string
+    secondary_color: string
+    tertiary_color: string
     navbar_opacity: number
     glass_blur: number
     radius: number
     pageTransition: 'fade' | 'slide-up' | 'instant'
   }
+}
+
+function hexToRgb(hex: string) {
+  let normalized = hex.replace('#', '').trim()
+  if (normalized.length === 3) {
+    normalized = normalized.split('').map((c) => c + c).join('')
+  }
+
+  const bigint = parseInt(normalized, 16)
+  const r = (bigint >> 16) & 255
+  const g = (bigint >> 8) & 255
+  const b = bigint & 255
+  return `${r}, ${g}, ${b}`
+}
+
+function clampColor(value: number) {
+  return Math.max(0, Math.min(255, Math.round(value)))
+}
+
+function adjustColor(hex: string, amount: number) {
+  const cleaned = hex.replace('#', '')
+  const rgb = cleaned.length === 3 ? cleaned.split('').map((c) => c + c).join('') : cleaned
+  const parsed = parseInt(rgb, 16)
+  const r = clampColor(((parsed >> 16) & 255) + amount)
+  const g = clampColor(((parsed >> 8) & 255) + amount)
+  const b = clampColor((parsed & 255) + amount)
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`
 }
 
 export const defaultSettings: SiteConfig = {
@@ -80,7 +109,9 @@ export const defaultSettings: SiteConfig = {
   },
   theme: {
     bg_color: '#FAF9F6',
-    brand_color: '#8B0000',
+    primary_color: '#8B0000',
+    secondary_color: '#F8EEEA',
+    tertiary_color: '#1A1A1A',
     navbar_opacity: 0.9,
     glass_blur: 20,
     radius: 0,
@@ -131,10 +162,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const root = document.documentElement
     root.style.setProperty('--navbar-opacity', settings.theme.navbar_opacity.toString())
     root.style.setProperty('--glass-blur', `${settings.theme.glass_blur}px`)
-    root.style.setProperty('--color-brand-red', settings.theme.brand_color)
+    root.style.setProperty('--color-primary', settings.theme.primary_color)
+    root.style.setProperty('--color-secondary', settings.theme.secondary_color)
+    root.style.setProperty('--color-tertiary', settings.theme.tertiary_color)
+    root.style.setProperty('--color-brand-red', settings.theme.primary_color)
+    root.style.setProperty('--color-brand-cream', settings.theme.secondary_color)
+    root.style.setProperty('--color-brand-dark', settings.theme.tertiary_color)
     root.style.setProperty('--bg-color', settings.theme.bg_color)
+    root.style.setProperty('--color-background', settings.theme.bg_color)
+    root.style.setProperty('--color-foreground', settings.theme.tertiary_color)
     root.style.setProperty('--radius-sm', `${settings.theme.radius}px`)
     root.style.setProperty('--radius-full', settings.theme.radius > 0 ? `${settings.theme.radius * 2}px` : '9999px')
+    root.style.setProperty('--primary-rgb', hexToRgb(settings.theme.primary_color))
+    root.style.setProperty('--secondary-rgb', hexToRgb(settings.theme.secondary_color))
+    root.style.setProperty('--tertiary-rgb', hexToRgb(settings.theme.tertiary_color))
+    root.style.setProperty('--glass-rgb', hexToRgb(settings.theme.primary_color))
   }, [settings])
 
   async function updateSettings(newSettings: Partial<SiteConfig>) {

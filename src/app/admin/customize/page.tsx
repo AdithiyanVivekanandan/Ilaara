@@ -39,6 +39,50 @@ export default function CustomizePage() {
     })
   }
 
+  const clampColor = (value: number) => Math.max(0, Math.min(255, Math.round(value)))
+
+  const adjustColor = (hex: string, amount: number) => {
+    let normalized = hex.replace('#', '').trim()
+    if (normalized.length === 3) {
+      normalized = normalized.split('').map((c) => c + c).join('')
+    }
+    const parsed = parseInt(normalized, 16)
+    const r = clampColor(((parsed >> 16) & 255) + amount)
+    const g = clampColor(((parsed >> 8) & 255) + amount)
+    const b = clampColor((parsed & 255) + amount)
+    return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`
+  }
+
+  const getPaletteSuggestions = (base: string) => {
+    const primary = adjustColor(base, -50)
+    const secondary = adjustColor(base, 20)
+    const tertiary = adjustColor(base, -85)
+    const coolPrimary = adjustColor(base, 60)
+    const coolSecondary = adjustColor(base, 20)
+    const coolTertiary = adjustColor(base, -40)
+    const richPrimary = adjustColor(base, -30)
+    const richSecondary = adjustColor(base, 40)
+    const richTertiary = adjustColor(base, -70)
+
+    return [
+      { label: 'Classic Contrast', primary, secondary, tertiary },
+      { label: 'Soft Harmony', primary: coolPrimary, secondary: coolSecondary, tertiary: coolTertiary },
+      { label: 'Rich Depth', primary: richPrimary, secondary: richSecondary, tertiary: richTertiary }
+    ]
+  }
+
+  const applyPalette = (palette: { primary: string; secondary: string; tertiary: string }) => {
+    setLocalSettings({
+      ...localSettings,
+      theme: {
+        ...localSettings.theme,
+        primary_color: palette.primary,
+        secondary_color: palette.secondary,
+        tertiary_color: palette.tertiary,
+      }
+    })
+  }
+
   return (
     <AdminLayout activeTab="customize">
       <header className="flex justify-between items-end border-b border-gray-100 pb-8">
@@ -93,10 +137,44 @@ export default function CustomizePage() {
                 </div>
               </div>
               <div className="space-y-4">
-                <label className="text-[10px] uppercase tracking-widest font-bold">Brand Color</label>
+                <label className="text-[10px] uppercase tracking-widest font-bold">Primary Accent</label>
                 <div className="flex gap-4 items-center">
-                  <input type="color" value={localSettings.theme.brand_color} onChange={e => updateSection('theme', 'brand_color', e.target.value)} className="w-10 h-10 border-0" />
-                  <input type="text" value={localSettings.theme.brand_color} onChange={e => updateSection('theme', 'brand_color', e.target.value)} className="border-b text-xs py-1" />
+                  <input type="color" value={localSettings.theme.primary_color} onChange={e => updateSection('theme', 'primary_color', e.target.value)} className="w-10 h-10 border-0" />
+                  <input type="text" value={localSettings.theme.primary_color} onChange={e => updateSection('theme', 'primary_color', e.target.value)} className="border-b text-xs py-1" />
+                </div>
+              </div>
+              <div className="space-y-4">
+                <label className="text-[10px] uppercase tracking-widest font-bold">Secondary Accent</label>
+                <div className="flex gap-4 items-center">
+                  <input type="color" value={localSettings.theme.secondary_color} onChange={e => updateSection('theme', 'secondary_color', e.target.value)} className="w-10 h-10 border-0" />
+                  <input type="text" value={localSettings.theme.secondary_color} onChange={e => updateSection('theme', 'secondary_color', e.target.value)} className="border-b text-xs py-1" />
+                </div>
+              </div>
+              <div className="space-y-4">
+                <label className="text-[10px] uppercase tracking-widest font-bold">Tertiary Text / Accent</label>
+                <div className="flex gap-4 items-center">
+                  <input type="color" value={localSettings.theme.tertiary_color} onChange={e => updateSection('theme', 'tertiary_color', e.target.value)} className="w-10 h-10 border-0" />
+                  <input type="text" value={localSettings.theme.tertiary_color} onChange={e => updateSection('theme', 'tertiary_color', e.target.value)} className="border-b text-xs py-1" />
+                </div>
+              </div>
+              <div className="space-y-4">
+                <label className="text-[10px] uppercase tracking-widest font-bold">Auto Suggest Color Combos</label>
+                <div className="grid gap-3">
+                  {getPaletteSuggestions(localSettings.theme.bg_color).map((palette, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => applyPalette(palette)}
+                      className="w-full p-4 border border-gray-200 rounded-sm text-left hover:border-brand-red transition-all"
+                    >
+                      <p className="text-xs uppercase tracking-[0.4em] text-gray-400 font-black">{palette.label}</p>
+                      <div className="mt-3 flex gap-2">
+                        <span className="h-8 w-8 rounded-sm" style={{ backgroundColor: palette.primary }} />
+                        <span className="h-8 w-8 rounded-sm" style={{ backgroundColor: palette.secondary }} />
+                        <span className="h-8 w-8 rounded-sm" style={{ backgroundColor: palette.tertiary }} />
+                      </div>
+                    </button>
+                  ))}
                 </div>
               </div>
               <div className="space-y-4">

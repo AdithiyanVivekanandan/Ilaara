@@ -10,15 +10,46 @@
 }
 
 :root {
-  --background: var(--color-brand-cream);
-  --foreground: var(--color-brand-dark);
+  --color-primary: #8B0000;
+  --color-secondary: #FAF9F6;
+  --color-tertiary: #1A1A1A;
+  --color-brand-red: var(--color-primary);
+  --color-brand-cream: var(--color-secondary);
+  --color-brand-dark: var(--color-tertiary);
+  --color-background: var(--color-secondary);
+  --color-foreground: var(--color-tertiary);
+  --navbar-opacity: 0.9;
+  --glass-blur: 20px;
+  --glass-rgb: 139, 0, 0;
 }
 
 @layer base {
-  body {
-    @apply bg-brand-cream text-brand-dark font-sans antialiased;
+  *, *::before, *::after {
+    box-sizing: border-box;
   }
-  
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font: inherit;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  img, video, svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  button, input, textarea, select {
+    font: inherit;
+  }
+
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif;
   }
@@ -39,6 +70,34 @@
 
 .hero-red {
   @apply bg-brand-red text-brand-cream;
+}
+
+.text-brand-red {
+  color: var(--color-brand-red) !important;
+}
+
+.bg-brand-red {
+  background-color: var(--color-brand-red) !important;
+}
+
+.border-brand-red {
+  border-color: var(--color-brand-red) !important;
+}
+
+.text-brand-cream {
+  color: var(--color-brand-cream) !important;
+}
+
+.bg-brand-cream {
+  background-color: var(--color-brand-cream) !important;
+}
+
+.text-brand-dark {
+  color: var(--color-brand-dark) !important;
+}
+
+.bg-brand-dark {
+  background-color: var(--color-brand-dark) !important;
 }
 
 .spaced-serif {
@@ -68,8 +127,9 @@
 /* Glassmorphism & Fluidity */
 .glass-nav {
   backdrop-filter: blur(var(--glass-blur, 20px)) saturate(200%);
-  background-color: rgba(250, 249, 246, var(--navbar-opacity, 0.9));
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  background: rgba(var(--glass-rgb, 255, 255, 255), var(--navbar-opacity, 0.9));
+  border: 1px solid rgba(var(--glass-rgb, 255, 255, 255), 0.12);
+  box-shadow: 0 4px 20px rgba(var(--glass-rgb, 255, 255, 255), 0.1);
   pointer-events: auto;
 }
 
