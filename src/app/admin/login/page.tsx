@@ -16,10 +16,13 @@ export default function AdminLoginPage() {
     setLoading(true)
     setMessage('')
 
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+    const redirectUrl = `${siteUrl}/api/auth/confirm?next=/admin`
+
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/api/auth/confirm?next=/admin`
+        emailRedirectTo: redirectUrl
       }
     })
 
