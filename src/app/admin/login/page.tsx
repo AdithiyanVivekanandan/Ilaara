@@ -6,6 +6,8 @@ import Link from 'next/link'
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [usePassword, setUsePassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   
@@ -29,22 +31,35 @@ export default function AdminLoginPage() {
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
     const nextPath = isDeveloper ? '/dev' : '/admin'
-    const redirectUrl = `${siteUrl}/api/auth/confirm?next=${nextPath}`
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: redirectUrl
+    if (usePassword) {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      if (error) {
+        setMessage(`Login failed: ${error.message}`)
+      } else {
+        // Redirect manually since we are using password
+        window.location.href = nextPath
       }
-    })
-
-    if (error) {
-      const extra = isDeveloper
-        ? ' This developer address must also be registered in Supabase Auth or signups must be enabled.'
-        : ''
-      setMessage(`Error: ${error.message}${extra}`)
     } else {
-      setMessage('Magic link sent to your email.')
+      const redirectUrl = `${siteUrl}/api/auth/confirm?next=${nextPath}`
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: redirectUrl
+        }
+      })
+
+      if (error) {
+        const extra = isDeveloper
+          ? ' Tip: You might be rate-limited by Supabase (3 per hour). Try Password Login instead!'
+          : ''
+        setMessage(`Error: ${error.message}${extra}`)
+      } else {
+        setMessage('Magic link sent to your email.')
+      }
     }
     setLoading(false)
   }
@@ -65,24 +80,50 @@ export default function AdminLoginPage() {
         </header>
 
         <form onSubmit={handleLogin} className="space-y-8">
-          <div className="space-y-4">
-            <label className="text-[10px] uppercase tracking-[0.4em] text-brand-red font-black">Email Address</label>
-            <input
-              required
-              type="email"
-              placeholder="admin@ilaara.art"
-              className="w-full bg-transparent border-b-2 border-gray-100 py-4 text-sm outline-none focus:border-brand-red transition-all placeholder:text-gray-200"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-            />
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <label className="text-[10px] uppercase tracking-[0.4em] text-brand-red font-black">Email Address</label>
+              <input
+                required
+                type="email"
+                placeholder="admin@ilaara.art"
+                className="w-full bg-transparent border-b-2 border-gray-100 py-4 text-sm outline-none focus:border-brand-red transition-all placeholder:text-gray-200"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+              />
+            </div>
+
+            {usePassword && (
+              <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                <label className="text-[10px] uppercase tracking-[0.4em] text-brand-red font-black">Password</label>
+                <input
+                  required
+                  type="password"
+                  placeholder="••••••••"
+                  className="w-full bg-transparent border-b-2 border-gray-100 py-4 text-sm outline-none focus:border-brand-red transition-all placeholder:text-gray-200"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                />
+              </div>
+            )}
           </div>
 
-          <button
-            disabled={loading}
-            className="w-full py-5 bg-brand-red text-brand-cream text-[10px] uppercase tracking-[0.4em] font-black rounded-full hover:bg-brand-dark transition-all shadow-xl disabled:opacity-50"
-          >
-            {loading ? 'Authenticating...' : 'Request Access'}
-          </button>
+          <div className="space-y-4">
+            <button
+              disabled={loading}
+              className="w-full py-5 bg-brand-red text-brand-cream text-[10px] uppercase tracking-[0.4em] font-black rounded-full hover:bg-brand-dark transition-all shadow-xl disabled:opacity-50"
+            >
+              {loading ? 'Authenticating...' : usePassword ? 'Login with Password' : 'Request Magic Link'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setUsePassword(!usePassword)}
+              className="w-full text-[9px] uppercase tracking-[0.2em] text-gray-400 font-bold hover:text-brand-red transition-colors"
+            >
+              {usePassword ? 'Use Magic Link instead' : 'Toggle Password Login'}
+            </button>
+          </div>
         </form>
 
         {message && (
