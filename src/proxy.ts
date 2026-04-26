@@ -31,9 +31,11 @@ export default async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const path = request.nextUrl.pathname
 
+  const normalizedEmail = user?.email?.toLowerCase().trim() || ''
+
   // 1. ADMIN / DEV PROTECTION LOGIC
-  const isAdmin = user.email?.toLowerCase().trim() === process.env.ADMIN_EMAIL?.toLowerCase().trim()
-  const isDev = user.email?.toLowerCase().trim() === process.env.DEV_EMAIL?.toLowerCase().trim()
+  const isAdmin = normalizedEmail === process.env.ADMIN_EMAIL?.toLowerCase().trim()
+  const isDev = normalizedEmail === process.env.DEV_EMAIL?.toLowerCase().trim()
 
   if (path.startsWith('/admin') && 
       path !== '/admin/login' && 
