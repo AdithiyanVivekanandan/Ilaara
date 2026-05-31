@@ -40,7 +40,7 @@ export default function Navbar() {
         {settings.home.hero_title || 'ILAARA'}
       </Link>
 
-      <div className={`flex gap-12 items-center pointer-events-none transition-all duration-500 rounded-full ${
+      <div className={`flex gap-12 items-center pointer-events-auto transition-all duration-500 rounded-full ${
         scrolled ? 'glass-nav px-10 py-3 shadow-lg' : 'px-0 py-0'
       }`}>
         <Link 

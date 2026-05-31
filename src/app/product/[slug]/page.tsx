@@ -5,34 +5,111 @@ import { useParams } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
+import ProductCard from '@/components/ProductCard'
 import { createClient } from '@/lib/supabase/client'
 import { useCart } from '@/components/CartProvider'
 import { useTheme } from '@/components/ThemeProvider'
 
+type Product = {
+  id: string
+  name: string
+  slug: string
+  price: number
+  category: string
+  description: string
+  images: string[]
+  is_available: boolean
+}
+
 export default function ProductDetailPage() {
-  const { slug } = useParams()
-  const [product, setProduct] = useState<any>(null)
+  const params = useParams()
+  const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug
+  const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeImage, setActiveImage] = useState(0)
   const [adding, setAdding] = useState(false)
   const [quantity, setQuantity] = useState(1)
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([])
+  const [relatedLoading, setRelatedLoading] = useState(false)
   
   const supabase = createClient()
   const { addToCart } = useCart()
   const { settings } = useTheme()
 
   useEffect(() => {
+    if (!slug) return
+
+    let isActive = true
+
     async function fetchProduct() {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('slug', slug)
-        .single()
-      
-      if (!error) setProduct(data)
-      setLoading(false)
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('slug', slug)
+          .single()
+        
+        if (!isActive) return
+
+        if (!error && data) {
+          setProduct(data)
+          await fetchRelatedProducts(data)
+        } else {
+          setProduct(null)
+          setRelatedProducts([])
+        }
+      } finally {
+        if (isActive) setLoading(false)
+      }
     }
+
+    async function fetchRelatedProducts(currentProduct: Product) {
+      setRelatedLoading(true)
+
+      try {
+        const relatedQuery = supabase
+          .from('products')
+          .select('*')
+          .neq('id', currentProduct.id)
+          .order('created_at', { ascending: false })
+          .limit(4)
+
+        const categoryFilteredQuery = currentProduct.category
+          ? relatedQuery.eq('category', currentProduct.category)
+          : relatedQuery
+
+        const { data: relatedByCategory } = await categoryFilteredQuery
+        let nextProducts = relatedByCategory || []
+
+        if (nextProducts.length < 4) {
+          const { data: fallbackProducts } = await supabase
+            .from('products')
+            .select('*')
+            .neq('id', currentProduct.id)
+            .order('created_at', { ascending: false })
+            .limit(4 - nextProducts.length)
+
+          nextProducts = [
+            ...nextProducts,
+            ...(fallbackProducts || []).filter(
+              fallbackProduct => !nextProducts.some(relatedProduct => relatedProduct.id === fallbackProduct.id)
+            ),
+          ].slice(0, 4)
+        }
+
+        if (isActive) {
+          setRelatedProducts(nextProducts)
+        }
+      } finally {
+        if (isActive) setRelatedLoading(false)
+      }
+    }
+
     fetchProduct()
+
+    return () => {
+      isActive = false
+    }
   }, [slug, supabase])
 
   const handleAddToCart = () => {
@@ -227,12 +304,29 @@ export default function ProductDetailPage() {
         {settings.product.showRelated && (
           <div className="pt-32 space-y-12">
             <h3 className="text-3xl font-serif italic text-gray-900 text-center">You might also like</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 opacity-50 pointer-events-none">
-              {/* Note: In a real app we'd fetch actual related products. Placeholder for visuals. */}
-              {[1,2,3,4].map(i => (
-                 <div key={i} className="aspect-[4/5] bg-gray-200 rounded-[var(--radius-sm)] animate-pulse" />
-              ))}
-            </div>
+            {relatedLoading ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="space-y-4">
+                    <div className="aspect-[4/5] bg-gray-200 rounded-[var(--radius-sm)] animate-pulse" />
+                    <div className="h-4 bg-gray-100 w-2/3 animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            ) : relatedProducts.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                {relatedProducts.map((relatedProduct) => (
+                  <ProductCard key={relatedProduct.id} product={relatedProduct} />
+                ))}
+              </div>
+            ) : (
+              <div className="py-12 text-center space-y-4">
+                <p className="text-lg font-serif italic text-gray-400">No related pieces surfaced right now.</p>
+                <Link href="/shop" className="block text-[10px] uppercase tracking-widest text-[var(--color-brand-red)] hover:opacity-80 font-bold">
+                  Browse the full collection
+                </Link>
+              </div>
+            )}
           </div>
         )}
       </div>

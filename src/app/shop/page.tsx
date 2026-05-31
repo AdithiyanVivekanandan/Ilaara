@@ -6,8 +6,18 @@ import ProductCard from '@/components/ProductCard'
 import { createClient } from '@/lib/supabase/client'
 import { useTheme } from '@/components/ThemeProvider'
 
+type Product = {
+  id: string
+  name: string
+  slug: string
+  price: number
+  category: string
+  images: string[]
+  is_available: boolean
+}
+
 export default function ShopPage() {
-  const [products, setProducts] = useState<any[]>([])
+  const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [category, setCategory] = useState<string | null>(null)
   const { settings } = useTheme()
@@ -35,7 +45,7 @@ export default function ShopPage() {
   }, [category, supabase])
 
   const getGridClass = () => {
-    if (settings.shop.isMasonry) return 'columns-1 md:columns-2 lg:columns-' + settings.shop.columns + ' gap-x-6 md:gap-x-12 space-y-12 md:space-y-20'
+    if (settings.shop.isMasonry) return 'columns-1 md:columns-2 lg:columns-' + settings.shop.columns + ' gap-x-6 md:gap-x-12 space-y-12 md:space-y-20 [column-fill:balance]'
     const colClass = settings.shop.columns === 2 ? 'lg:grid-cols-2' : settings.shop.columns === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4'
     return `grid grid-cols-2 ${colClass} gap-x-6 md:gap-x-12 gap-y-12 md:gap-y-20`
   }
@@ -100,7 +110,11 @@ export default function ShopPage() {
       ) : (
         <div className={getGridClass()}>
           {products.map(product => (
-            <div key={product.id} className={settings.shop.isMasonry ? 'break-inside-avoid' : ''}>
+            <div
+              key={product.id}
+              className={settings.shop.isMasonry ? 'break-inside-avoid-column' : ''}
+              style={settings.shop.isMasonry ? { breakInside: 'avoid-column' } : undefined}
+            >
               <ProductCard product={product} />
             </div>
           ))}

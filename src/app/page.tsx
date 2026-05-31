@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useLayoutEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Navbar from '@/components/Navbar'
@@ -10,10 +10,21 @@ import { useTheme } from '@/components/ThemeProvider'
 
 export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null)
+  const [isDesktop, setIsDesktop] = useState(false)
   const { settings } = useTheme()
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 768px)')
+    const updateViewport = () => setIsDesktop(mediaQuery.matches)
+
+    updateViewport()
+    mediaQuery.addEventListener('change', updateViewport)
+
+    return () => mediaQuery.removeEventListener('change', updateViewport)
+  }, [])
+
   useLayoutEffect(() => {
-    if (!containerRef.current) return
+    if (!containerRef.current || !isDesktop) return
 
     gsap.registerPlugin(ScrollTrigger)
 
@@ -83,10 +94,10 @@ export default function Home() {
     }, containerRef)
 
     return () => ctx.revert()
-  }, [settings.home.scrollSpeed, settings.home.parallaxIntensity, settings.home.stories.length])
+  }, [isDesktop, settings.home.scrollSpeed, settings.home.parallaxIntensity, settings.home.stories])
 
   return (
-    <main className="relative min-h-screen select-none overflow-hidden" ref={containerRef}>
+    <main className="relative min-h-screen select-none overflow-x-hidden md:overflow-hidden" ref={containerRef}>
       <Navbar />
 
       <div className="fixed inset-0 pointer-events-none z-0">
@@ -98,13 +109,18 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="relative z-10 w-full h-screen">
+      <div className="relative z-10 w-full md:h-screen">
         
         {/* SCENE 1: INITIAL HERO */}
-        <section className="hero-scene bg-[var(--bg-color)] h-full flex flex-col items-center justify-center px-6 md:px-16" style={{ transform: `scale(${settings.home.logoSize})` }}>
+        <section className="hero-scene bg-[var(--bg-color)] relative flex min-h-screen md:h-full flex-col items-center justify-center px-6 md:px-16 py-28 md:py-0">
           <div className="hero-content text-center space-y-8 md:space-y-12">
             <div className="space-y-4 md:space-y-6">
-              <h1 className="spaced-serif text-5xl md:text-8xl lg:text-[14rem] text-[var(--color-brand-red)] tracking-[0.3em] md:tracking-[0.5em] leading-none transition-all">
+              <h1
+                className="spaced-serif text-[var(--color-brand-red)] tracking-[0.3em] md:tracking-[0.5em] leading-none transition-all"
+                style={{
+                  fontSize: `clamp(3.5rem, ${settings.home.logoSize * 7}vw, 14rem)`,
+                }}
+              >
                 {settings.home.hero_title}
               </h1>
               <p className="text-[8px] md:text-sm uppercase tracking-[0.6em] md:tracking-[1em] text-gray-400 font-bold opacity-60">
@@ -130,7 +146,10 @@ export default function Home() {
 
         {/* DYNAMIC STORIES */}
         {settings.home.stories.map((story, index) => (
-          <section key={index} className={`chapter-${index + 1} absolute inset-0 opacity-0 flex flex-col items-center justify-center px-6 md:px-32 bg-[var(--bg-color)]`}>
+          <section
+            key={index}
+            className={`chapter-${index + 1} relative flex min-h-screen flex-col items-center justify-center bg-[var(--bg-color)] px-6 py-20 opacity-100 md:absolute md:inset-0 md:min-h-0 md:px-32 md:py-0 md:opacity-0`}
+          >
             <div className="w-full max-w-7xl grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-24 items-center">
               <div className={`relative aspect-square shadow-2xl rounded-[var(--radius-sm)] p-8 md:p-12 bg-white overflow-hidden group ${index % 2 !== 0 ? 'md:order-2' : ''}`}>
                 {story.image && <Image src={story.image} alt={story.title} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover transition-transform duration-700 group-hover:scale-110" priority={index === 0} />}
@@ -147,7 +166,7 @@ export default function Home() {
         ))}
 
         {/* FINAL CTA */}
-        <section className="cta-scene absolute inset-0 opacity-0 flex flex-col items-center justify-center px-6 bg-[var(--bg-color)]">
+        <section className="cta-scene relative flex min-h-screen flex-col items-center justify-center px-6 py-20 bg-[var(--bg-color)] opacity-100 md:absolute md:inset-0 md:min-h-0 md:py-0 md:opacity-0">
           <div className="text-center space-y-8 md:space-y-16">
             <h2 className="text-4xl md:text-9xl font-light italic font-serif text-gray-900 opacity-10 tracking-tighter leading-none">
               Honest craft, <br /> slowly made.

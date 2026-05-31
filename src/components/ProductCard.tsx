@@ -27,7 +27,7 @@ export default function ProductCard({ product }: { product: Product }) {
   }
 
   const getHoverClass = () => {
-    let base = 'relative overflow-hidden transition-all duration-700 '
+    const base = 'relative overflow-hidden transition-all duration-700 '
     switch (settings.shop.hoverEffect) {
       case 'zoom': return base + 'group-hover:shadow-xl'
       case 'lift': return base + 'group-hover:-translate-y-2 group-hover:shadow-2xl'
@@ -45,7 +45,8 @@ export default function ProductCard({ product }: { product: Product }) {
   return (
     <Link 
       href={`/product/${product.slug}`}
-      className="group block space-y-4"
+      className="group block w-full space-y-4"
+      style={{ breakInside: 'avoid-column' }}
     >
       <div 
         className={`${getAspectRatioClass()} ${getHoverClass()}`}
