@@ -21,6 +21,20 @@ export default function AdminLoginForm() {
 
   const confirmationFailed = searchParams.get('error') === 'confirmation-failed'
 
+  const parseResponseMessage = async (response: Response) => {
+    const text = await response.text()
+
+    if (!text) {
+      return null
+    }
+
+    try {
+      return JSON.parse(text) as { error?: string }
+    } catch {
+      return { error: text }
+    }
+  }
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -49,10 +63,10 @@ export default function AdminLoginForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       })
-      const data = await response.json()
+      const data = await parseResponseMessage(response)
 
       if (!response.ok) {
-        setMessage(data.error || 'Unable to send magic link.')
+        setMessage(data?.error || 'Unable to send magic link.')
       } else {
         setMessage('Magic link sent to your email.')
       }
@@ -76,10 +90,10 @@ export default function AdminLoginForm() {
         body: JSON.stringify({ email }),
       })
 
-      const data = await response.json()
+      const data = await parseResponseMessage(response)
 
       if (!response.ok) {
-        setMessage(data.error || 'Unable to reset dev password.')
+        setMessage(data?.error || 'Unable to reset dev password.')
       } else {
         setPassword('12345678')
         setMessage('Dev password reset to 12345678. You can log in now.')
