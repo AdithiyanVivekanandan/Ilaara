@@ -50,7 +50,7 @@ export async function POST(request: Request) {
   const fromAddress = process.env.RESEND_FROM_EMAIL || 'ILAARA <onboarding@resend.dev>'
 
   try {
-    await resend.emails.send({
+    const { error: resendError } = await resend.emails.send({
       from: fromAddress,
       to: email,
       subject: 'Your ILAARA admin magic link',
@@ -68,9 +68,25 @@ export async function POST(request: Request) {
       `,
       text: `Open the ILAARA admin portal: ${link}`,
     })
+
+    if (resendError) {
+      console.error('Resend send error:', resendError)
+      return NextResponse.json(
+        {
+          error: resendError.message,
+          resendCode: resendError.name,
+        },
+        { status: resendError.statusCode || 500 }
+      )
+    }
   } catch (emailError) {
     console.error('Resend send error:', emailError)
-    return NextResponse.json({ error: 'Error sending magic link email' }, { status: 500 })
+    const message =
+      emailError instanceof Error
+        ? emailError.message
+        : 'Error sending magic link email'
+
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 
   return NextResponse.json({ success: true })
