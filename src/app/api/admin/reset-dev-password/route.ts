@@ -33,17 +33,27 @@ export async function POST(request: Request) {
     (candidate) => candidate.email?.toLowerCase().trim() === configuredDevEmail
   )
 
-  if (!user) {
-    return NextResponse.json({ error: 'Dev user not found in Supabase Auth' }, { status: 404 })
+  if (user) {
+    const { error: updateError } = await supabase.auth.admin.updateUserById(user.id, {
+      password: DEV_PASSWORD,
+    })
+
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true, action: 'updated' })
   }
 
-  const { error: updateError } = await supabase.auth.admin.updateUserById(user.id, {
+  const { error: createError } = await supabase.auth.admin.createUser({
+    email: configuredDevEmail,
     password: DEV_PASSWORD,
+    email_confirm: true,
   })
 
-  if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 })
+  if (createError) {
+    return NextResponse.json({ error: createError.message }, { status: 500 })
   }
 
-  return NextResponse.json({ success: true })
+  return NextResponse.json({ success: true, action: 'created' })
 }
